@@ -103,9 +103,10 @@ Imagem_ycbcr *RGBtoYCbCr(Imagem_rgb *imagem) {
             double G = (double) (imagem->G)[i][j];
             double B = (double) (imagem->B)[i][j];
             
+            
             (converted_image->Y)[i][j] = min(max(0.299*R + 0.587*G + 0.114*B, 0), 255);
-            (converted_image->Cb)[i][j] = min(max(0.564*(B - (converted_image->Y)[i][j]), -128), 127); 
-            (converted_image->Cr)[i][j] = min(max(0.713*(R - (converted_image->Y)[i][j]), -128), 127);  
+            (converted_image->Cb)[i][j] = min(max(128 - 0.168736*R - 0.331264*G + 0.5*B, 0), 255); 
+            (converted_image->Cr)[i][j] = min(max(128 + 0.5*R - 0.418688*G - 0.081312*B, 0), 255);  
         }
     }
 
@@ -123,9 +124,13 @@ Imagem_rgb *YCbCrtoRGB(Imagem_ycbcr *imagem) {
     
     for(int i = 0; i < imagem->Height; i++)
         for(int j = 0; j < imagem->Width; j++) {
-            double R = (imagem->Y)[i][j] + 1.402*((imagem->Cr)[i][j]);
-            double G = (imagem->Y)[i][j] - 0.344*((imagem->Cb)[i][j]) - 0.714*((imagem->Cr)[i][j]);
-            double B = (imagem->Y)[i][j] + 1.772*((imagem->Cb)[i][j]);
+            
+            double Cb_shifted = (imagem->Cb)[i][j] - 128;
+            double Cr_shifted = (imagem->Cr)[i][j] - 128;
+            
+            double R = (imagem->Y)[i][j] + 1.402 * Cr_shifted;
+            double G = (imagem->Y)[i][j] - 0.344136 * Cb_shifted - 0.714136 * Cr_shifted;
+            double B = (imagem->Y)[i][j] + 1.772 * Cb_shifted;
 
             (converted_image->R)[i][j] = min(max(round(R), 0), 255);
             (converted_image->G)[i][j] = min(max(round(G), 0), 255);
@@ -187,9 +192,9 @@ void downsampling(Imagem_ycbcr *imagem) {
             double d0 = (imagem->Cr)[i + 1][j + 1];
 
             double mediab = (a + b + c + d)/4;
-            mediab = min(max(mediab, -128), 127);
+            mediab = min(max(mediab, 0), 255);
             double mediar = (a0 + b0 + c0 + d0)/4;
-            mediar = min(max(mediar, -128), 127);
+            mediar = min(max(mediar, 0), 255);
  
             matrix_Cb[contador_fileira][contador_coluna] = mediab;
             matrix_Cr[contador_fileira][contador_coluna] = mediar;
@@ -260,6 +265,8 @@ void downLevelShift(Imagem_ycbcr *imagem) {
         for(int j = 0; j < imagem->Width; j++)
             (imagem->Y)[i][j] -= 128;
     }
+    
+    // Cb e Cr já estão na faixa correta [0, 255], não precisam de level shift
 }
 
 void upLevelShift(Imagem_ycbcr *imagem) {
@@ -267,6 +274,8 @@ void upLevelShift(Imagem_ycbcr *imagem) {
         for(int j = 0; j < imagem->Width; j++)
             (imagem->Y)[i][j] += 128;
     }
+    
+    // Cb e Cr já estão na faixa correta [0, 255], não precisam de level shift reverso
 }
 
 
