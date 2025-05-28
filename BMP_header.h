@@ -1,13 +1,20 @@
+
 #ifndef BMP_HEADER_H
     #define BMP_HEADER_H
 
     #include <stdio.h>
 
 
-    #define BMP_FILEHEADER_SIZE 14  //2 + 4 + 2 + 2 + 4
-    #define BMP_INFOHEADER_SIZE 40  //4 + 4 + 4 + 2 + 2 + 4 + 4 + 4 + 4 + 4 + 4
-    #define BMP_HEADER_SIZE 54 //14 + 40 
+    //Tamanho do "File Header" do arquivo BMP
+    #define BMP_FILEHEADER_SIZE 14  //3*sizeof(unsigned short) + 2*sizeof(unsigned int)
 
+    //Tamanho do "Info Header" do arquivo bmp
+    #define BMP_INFOHEADER_SIZE 40  //2*sizeof(unsigned short) + 5*sizeof(unsigned int) + 4*sizeof(int) 
+
+    //Tamanho total do Header do arquivo VMP
+    #define BMP_HEADER_SIZE 54 //BMP_FILEHEADER_SIZE + BMP_INFOHEADER_SIZE
+
+    //Struct que armazena as informações do FileHeader de um arquivo BMP.
     typedef struct bmpfileheader{
         unsigned short bfType; /* Magic number for file */
         unsigned int bfSize; /* Size of file */
@@ -16,6 +23,7 @@
         unsigned int bfOffBits; /* Offset to bitmap data */
     }BMPFILEHEADER;
 
+    //Struct que armazena as informações do InfoHeader de um arquivo BMP.
     typedef struct bmpinfoheader{
         unsigned int biSize; /* Size of info header */
         int biWidth; /* Width of image */
@@ -31,10 +39,30 @@
     }BMPINFOHEADER;
 
 
+    /* ----- Funções de leitura/escrita no FileHeader ----- */
+
+    //Função que lê todas as informações do FileHeader de um arquivo BMP e as salva em uma struct.
+    //Entrada: ponteiro para o arquivo BMP; struct FileHeader onde as informações serão salvas.
+    //Saída: Nenhuma.
     void leituraFileHeader(FILE *F, BMPFILEHEADER *H);
+
+    //Função que escreve todas as informações de uma struct de FileHeader em um arquivo BMP.
+    //Entrada: ponteiro para o arquivo BMP; struct FileHeader que contém as informações a serem salvas.
+    //Saída: Nenhuma.
     void escritaFileHeader(FILE *F, BMPFILEHEADER *H);
 
+
+    /* ----- Funções de leitura/escrita no InfoHeader ----- */
+
+    //Função que lê todas as informações do InfoHeader de um arquivo BMP e as salva em uma struct.
+    //Entrada: ponteiro para o arquivo BMP; struct InfoHeader onde as informações serão salvas.
+    //Saída: Nenhuma.
     void leituraInfoHeader(FILE *F, BMPINFOHEADER *H);
+
+
+    //Função que escreve todas as informações de uma struct de InfoHeader em um arquivo BMP.
+    //Entrada: ponteiro para o arquivo BMP; struct InfoHeader onde as informações serão salvas.
+    //Saída: Nenhuma.
     void escritaInfoHeader(FILE *F, BMPINFOHEADER *H);    
     
 
