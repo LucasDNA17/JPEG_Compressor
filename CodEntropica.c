@@ -5,10 +5,16 @@
 #include <math.h>
 
 
+/* ----- Funções de vetorização/matricização de imagens ----- */
 
+//Função que transforma um bloco 8x8 de uma imagem em vetor. A vetorização segue
+//o padrão "zigue-zague" necessário à compressão JPEG. A função desaloca o espaço
+//de memória do bloco 8x8.
  int *vetorizacao_bloco8x8(double **bloco8x8) {
     if(bloco8x8 == NULL) return NULL;
 
+    //Matriz de índices pré-calculada em que o elemento a_ij representa
+    //a posição do coeficiente c_ij do bloco no vetor final.
     int index_matrix[8][8] = {
     {0, 1, 5 ,6, 14, 15, 27, 28},
     {2, 4, 7, 13, 16, 26, 29, 42},
@@ -20,17 +26,21 @@
     {35, 36, 48, 49, 57, 58, 62, 63}
     };
 
+    //Cópia dos elementos do bloco 8x8 para o vetor, sendo a posição
+    //dos coeficientes determinada pela matriz de índices.
     int *vetor = (int *) malloc(64*sizeof(int));
     for(int i = 0; i < 8; i++)
         for(int j = 0; j < 8; j++)
             vetor[index_matrix[i][j]] = (int) bloco8x8[i][j];
     
+    //Desaloca o bloco 8x8 e retorna o vetor criado.
     desaloca_matrix((void **) bloco8x8, 8, 8);
     return vetor;    
 }
 
 
-double **matrizicacao_bloco8x8(int *vetor) {
+//    //Função que desfaz o processo de vetorização, gerando novamente os blocos 8x8 em formato de matriz.
+double **matricizacao_bloco8x8(int *vetor) {
     if(vetor == NULL) return NULL;
 
     int index_matrix[8][8] = {
@@ -77,7 +87,7 @@ int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
 }
 
 
-double ****matrizicacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
+double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetor == NULL) return NULL;
 
     double ****blocos8x8 = (double ****) malloc(3*sizeof(double ***));
@@ -87,11 +97,11 @@ double ****matrizicacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
     blocos8x8[2] = (double ***) malloc(qtd_blocos_c*sizeof(double **));
 
     for(int i = 0; i < qtd_blocos_y; i++)
-        blocos8x8[0][i] = matrizicacao_bloco8x8(vetor[0][i]);
+        blocos8x8[0][i] = matricizacao_bloco8x8(vetor[0][i]);
 
     for(int i = 0; i < qtd_blocos_c; i++) {
-        blocos8x8[1][i] = matrizicacao_bloco8x8(vetor[1][i]);
-        blocos8x8[2][i] = matrizicacao_bloco8x8(vetor[2][i]);
+        blocos8x8[1][i] = matricizacao_bloco8x8(vetor[1][i]);
+        blocos8x8[2][i] = matricizacao_bloco8x8(vetor[2][i]);
     }
 
     free(vetor[0]); free(vetor[1]); free(vetor[2]);

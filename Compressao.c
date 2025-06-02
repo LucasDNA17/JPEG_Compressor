@@ -410,7 +410,7 @@ int descompressao_completa_bin_para_bmp(const char *arquivo_bin, const char *arq
     int ***vetores = decodificar_rle(blocos_rle, qtd_blocos_y, qtd_blocos_c);
     
     // ETAPA 4: Vetores -> Matrizes 8x8
-    double ****blocos8x8 = matrizicacao(vetores, qtd_blocos_y, qtd_blocos_c);
+    double ****blocos8x8 = matricizacao(vetores, qtd_blocos_y, qtd_blocos_c);
     
     // ETAPA 5: Quantização inversa
     quantizacao_inversa(blocos8x8, qtd_blocos_y, qtd_blocos_c);
