@@ -39,10 +39,13 @@
 }
 
 
-//    //Função que desfaz o processo de vetorização, gerando novamente os blocos 8x8 em formato de matriz.
+//Função que desfaz o processo de vetorização, gerando novamente um bloco 8x8 em formato de matriz.
+//A função desaloca o espaço de memória do vetor de coeficientes.
 double **matricizacao_bloco8x8(int *vetor) {
     if(vetor == NULL) return NULL;
 
+    //Matriz de índices pré-calculada em que o elemento a_ij representa
+    //a posição do coeficiente c_ij do bloco no vetor final.
     int index_matrix[8][8] = {
     {0, 1, 5 ,6, 14, 15, 27, 28},
     {2, 4, 7, 13, 16, 26, 29, 42},
@@ -54,56 +57,75 @@ double **matricizacao_bloco8x8(int *vetor) {
     {35, 36, 48, 49, 57, 58, 62, 63}
     };
 
+    //Cópia dos elementos do vetor para o bloco 8x8, sendo a posição
+    //dos coeficientes determinada pela matriz de índices.
     double **bloco8x8 = (double **) aloca_matrix(1, 8, 8);
     for(int i = 0; i < 8; i++)
         for(int j = 0; j < 8; j++)
             bloco8x8[i][j] = (double) vetor[index_matrix[i][j]];
 
+    //Desaloca o vetor de coeficientes e retorna o bloco 8x8 criado.
     free(vetor);
     return bloco8x8;    
 }
 
 
+//Função que transforma os blocos 8x8 de uma imagem em vetores. A vetorização segue
+//o padrão "zigue-zague" necessário à compressão JPEG.
 int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos8x8 == NULL) return NULL;
 
+    //Lista que armazena as informações dos três canais de informação da imagem.
     int ***vetores = (int ***) malloc(3*sizeof(int **));
+    //Lista de vetores do canal Y.
     vetores[0] = (int **) malloc(qtd_blocos_y*sizeof(int *));
+    //Lista de vetores do canal Cb.
     vetores[1] = (int **) malloc(qtd_blocos_c*sizeof(int *));
+    //Lista de vetores do canal Cr.
     vetores[2] = (int **) malloc(qtd_blocos_c*sizeof(int *));
 
+    //Vetorização bloco a bloco do canal Y.
     for(int i = 0; i < qtd_blocos_y; i++)
         vetores[0][i] = vetorizacao_bloco8x8(blocos8x8[0][i]);
 
+    //Vetorização bloco a bloco dos canais Cb e Cr.
     for(int i = 0; i < qtd_blocos_c; i++) {
-        vetores[1][i] = vetorizacao_bloco8x8(blocos8x8[1][i]);
-        vetores[2][i] = vetorizacao_bloco8x8(blocos8x8[2][i]);
+        vetores[1][i] = vetorizacao_bloco8x8(blocos8x8[1][i]); //Canal Cb.
+        vetores[2][i] = vetorizacao_bloco8x8(blocos8x8[2][i]); //Canal Cr.
     }
 
+    //Desaloca as listas de blocos de todos os canais de informação.
     free(blocos8x8[0]); free(blocos8x8[1]); free(blocos8x8[2]);
     free(blocos8x8);
 
     return vetores;
 }
 
-
+//Função que desfaz o processo de vetorização, gerando novamente os blocos 8x8 em formato de matriz.
 double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetor == NULL) return NULL;
 
+    //Lista que armazena os três canais de informação da imagem.
     double ****blocos8x8 = (double ****) malloc(3*sizeof(double ***));
 
+    //Lista de blocos 8x8 do canal Y.
     blocos8x8[0] = (double ***) malloc(qtd_blocos_y*sizeof(double **));
+    //Lista de blocos 8x8 do canal Cb.
     blocos8x8[1] = (double ***) malloc(qtd_blocos_c*sizeof(double **));
+    //Lista de blocos 8x8 do canal Cr.
     blocos8x8[2] = (double ***) malloc(qtd_blocos_c*sizeof(double **));
 
+    //Matricização bloco a bloco do canal Y.
     for(int i = 0; i < qtd_blocos_y; i++)
         blocos8x8[0][i] = matricizacao_bloco8x8(vetor[0][i]);
 
+    //Matricização bloco a bloco dos canais Cb e Cr.
     for(int i = 0; i < qtd_blocos_c; i++) {
         blocos8x8[1][i] = matricizacao_bloco8x8(vetor[1][i]);
         blocos8x8[2][i] = matricizacao_bloco8x8(vetor[2][i]);
     }
 
+    //Desaloca as listas de vetores dos trẽs canais de infromação.
     free(vetor[0]); free(vetor[1]); free(vetor[2]);
     free(vetor);
 
