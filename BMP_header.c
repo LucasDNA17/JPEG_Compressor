@@ -1,9 +1,6 @@
 #include "BMP_header.h"
 
 
-/* ----- Funções de leitura/escrita no FileHeader ----- */
-
-
 //Função que realiza a leitura, campo a campo, do FileHeader de um arquivo BMP e salva as informações em uma struct.
 void leituraFileHeader(FILE *F, BMPFILEHEADER *H) {
     fseek(F, 0, SEEK_SET); 
@@ -23,11 +20,6 @@ void escritaFileHeader(FILE *F, BMPFILEHEADER *H) {
     fwrite(&H->bfReserved2,sizeof (unsigned short int),1,F);
     fwrite(&H->bfOffBits,sizeof (unsigned int),1,F);
 }
-
-
-
-/* ----- Funções de leitura/escrita no InfoHeader ----- */
-
 
 
 //Função que realiza a leitura, campo a campo, do InfoHeader de um arquivo BMP e salva as informações em uma struct.

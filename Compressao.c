@@ -7,7 +7,16 @@
 #include <string.h>
 #include <math.h>
 
+// Referências externas às tabelas Huffman
+extern const uint8_t huffman_dc_len[12];
+extern const uint16_t huffman_dc_code[12];
+extern const uint8_t huffman_ac_len[256];
+extern const uint16_t huffman_ac_code[256];
 
+
+//Cria e inicializa um buffer de bits para armazenar dados comprimidos
+//Parametros: capacidade_inicial - tamanho inicial do buffer em bytes
+//Retorno: ponteiro para o buffer de bits criado
 Buffer_Bits *criar_buffer_bits(int capacidade_inicial) {
     Buffer_Bits *buffer = (Buffer_Bits *) malloc(sizeof(Buffer_Bits));
     buffer->capacidade = capacidade_inicial;
@@ -19,6 +28,9 @@ Buffer_Bits *criar_buffer_bits(int capacidade_inicial) {
     return buffer;
 }
 
+//Libera a memoria alocada para um buffer de bits
+//Parametros: buffer - ponteiro para o buffer a ser liberado
+//Retorno: void
 void liberar_buffer_bits(Buffer_Bits *buffer) {
     if(buffer != NULL) {
         if(buffer->dados != NULL) {
@@ -28,6 +40,9 @@ void liberar_buffer_bits(Buffer_Bits *buffer) {
     }
 }
 
+//Escreve um bit no buffer de bits
+//Parametros: buffer - ponteiro para o buffer, bit - valor do bit (0 ou 1)
+//Retorno: void
 void escrever_bit(Buffer_Bits *buffer, int bit) {
     // Expandir buffer se necessário
     int byte_necessario = buffer->tamanho_buffer;
@@ -48,6 +63,9 @@ void escrever_bit(Buffer_Bits *buffer, int bit) {
     }
 }
 
+//Escreve multiplos bits no buffer
+//Parametros: buffer - ponteiro para o buffer, valor - valor a ser escrito, num_bits - numero de bits a escrever
+//Retorno: void
 void escrever_bits(Buffer_Bits *buffer, int valor, int num_bits) {
     for(int i = num_bits - 1; i >= 0; i--) {
         int bit = (valor >> i) & 1;
@@ -55,6 +73,9 @@ void escrever_bits(Buffer_Bits *buffer, int valor, int num_bits) {
     }
 }
 
+//Le um bit do buffer de bits
+//Parametros: buffer - ponteiro para o buffer
+//Retorno: valor do bit lido (0 ou 1)
 int ler_bit(Buffer_Bits *buffer) {
     if(buffer->byte_leitura >= buffer->capacidade) {
         return 0; // EOF
@@ -71,6 +92,9 @@ int ler_bit(Buffer_Bits *buffer) {
     return bit;
 }
 
+//Le multiplos bits do buffer
+//Parametros: buffer - ponteiro para o buffer, num_bits - numero de bits a ler
+//Retorno: valor inteiro formado pelos bits lidos
 int ler_bits(Buffer_Bits *buffer, int num_bits) {
     int valor = 0;
     for(int i = 0; i < num_bits; i++) {
@@ -79,6 +103,9 @@ int ler_bits(Buffer_Bits *buffer, int num_bits) {
     return valor;
 }
 
+//Reseta a posicao de leitura do buffer para o inicio
+//Parametros: buffer - ponteiro para o buffer
+//Retorno: void
 void resetar_posicao_leitura(Buffer_Bits *buffer) {
     buffer->byte_leitura = 0;
     buffer->bit_leitura = 0;
@@ -86,20 +113,91 @@ void resetar_posicao_leitura(Buffer_Bits *buffer) {
 
 
 
+//Calcula a categoria JPEG de um valor DC ou AC
+//Parametros: valor - valor inteiro para calcular a categoria
+//Retorno: categoria do valor (0-11)
 int obter_categoria(int valor) {
     if(valor == 0) return 0;
     int abs_valor = abs(valor);
     return (int)(log2(abs_valor)) + 1;
 }
 
+//Mapeia par (zeros, categoria) para indice da tabela AC Huffman
+//Parametros: zeros - numero de zeros consecutivos, categoria - categoria do valor
+//Retorno: indice na tabela AC Huffman
+static int obter_indice_ac(int zeros, int categoria) {
+    if(zeros == 0 && categoria == 0) return 0;  // EOB (End of Block)
+    if(zeros > 15) zeros = 15;  // Máximo de 15 zeros consecutivos
+    if(categoria > 10) categoria = 10;  // Máximo categoria 10
+    return (zeros << 4) | categoria;  // (zeros * 16) + categoria
+}
+
+//Decodifica categoria DC usando tabelas Huffman padrao JPEG
+//Parametros: buffer - ponteiro para o buffer de bits
+//Retorno: categoria DC decodificada
+static int decodificar_categoria_dc_huffman(Buffer_Bits *buffer) {
+    int codigo_acumulado = 0;
+    int bits_lidos = 0;
+    
+    for(int tamanho = 1; tamanho <= 9; tamanho++) {
+        // Ler mais um bit
+        int bit = ler_bit(buffer);
+        codigo_acumulado = (codigo_acumulado << 1) | bit;
+        bits_lidos++;
+        
+        // Verificar todas as categorias com este tamanho
+        for(int categoria = 0; categoria < 12; categoria++) {
+            if(huffman_dc_len[categoria] == tamanho && 
+               huffman_dc_code[categoria] == codigo_acumulado) {
+                return categoria;
+            }
+        }
+    }
+    
+    return 0;  // Se não encontrou, retorna categoria 0
+}
+
+//Decodifica simbolo AC usando tabelas Huffman padrao JPEG
+//Parametros: buffer - ponteiro para o buffer de bits
+//Retorno: indice na tabela AC correspondente ao simbolo decodificado
+static int decodificar_simbolo_ac_huffman(Buffer_Bits *buffer) {
+    int codigo_acumulado = 0;
+    int bits_lidos = 0;
+    
+    for(int tamanho = 1; tamanho <= 16; tamanho++) {
+        // Ler mais um bit
+        int bit = ler_bit(buffer);
+        codigo_acumulado = (codigo_acumulado << 1) | bit;
+        bits_lidos++;
+        
+        // Verificar todas as entradas AC com este tamanho
+        for(int indice = 0; indice < 256; indice++) {
+            if(huffman_ac_len[indice] == tamanho && 
+               huffman_ac_code[indice] == codigo_acumulado) {
+                return indice;
+            }
+        }
+    }
+    
+    return 0;  // Se não encontrou, retorna EOB (End of Block)
+}
+
+//Codifica valor DC usando tabelas Huffman e categoria/amplitude
+//Parametros: buffer - ponteiro para o buffer de bits, valor - valor DC a ser codificado
+//Retorno: void
 void codificar_categoria_amplitude(Buffer_Bits *buffer, int valor) {
     int categoria = obter_categoria(valor);
     
-    // Escrever categoria (4 bits suficientes para JPEG)
-    escrever_bits(buffer, categoria, 4);
+    // Validar categoria (0-11 para DC)
+    if(categoria > 11) categoria = 11;
+    
+    // Usar tabela Huffman DC para escrever código da categoria
+    uint16_t codigo_categoria = huffman_dc_code[categoria];
+    uint8_t tamanho_categoria = huffman_dc_len[categoria];
+    escrever_bits(buffer, codigo_categoria, tamanho_categoria);
     
     if(categoria > 0) {
-        // Codificar amplitude
+        // Codificar amplitude usando tamanho variável
         if(valor > 0) {
             escrever_bits(buffer, valor, categoria);
         } else {
@@ -110,8 +208,11 @@ void codificar_categoria_amplitude(Buffer_Bits *buffer, int valor) {
     }
 }
 
+//Decodifica valor DC usando tabelas Huffman e categoria/amplitude
+//Parametros: buffer - ponteiro para o buffer de bits
+//Retorno: valor DC decodificado
 int decodificar_categoria_amplitude(Buffer_Bits *buffer) {
-    int categoria = ler_bits(buffer, 4);
+    int categoria = decodificar_categoria_dc_huffman(buffer);
     
     if(categoria == 0) return 0;
     
@@ -125,21 +226,70 @@ int decodificar_categoria_amplitude(Buffer_Bits *buffer) {
     }
 }
 
+//Codifica simbolo AC usando tabelas Huffman
+//Parametros: buffer - ponteiro para o buffer, zeros - zeros consecutivos, amplitude - valor AC
+//Retorno: void
 void codificar_simbolo_ac(Buffer_Bits *buffer, int zeros, int amplitude) {
-    // Escrever número de zeros (4 bits)
-    escrever_bits(buffer, zeros, 4);
+    int categoria = obter_categoria(amplitude);
+    int indice_ac = obter_indice_ac(zeros, categoria);
     
-    // Escrever amplitude usando categoria
-    codificar_categoria_amplitude(buffer, amplitude);
+    // Validar índice AC (0-255)
+    if(indice_ac > 255) indice_ac = 255;
+    
+    // Usar tabela Huffman AC para escrever código do par (zeros, categoria)
+    uint16_t codigo_ac = huffman_ac_code[indice_ac];
+    uint8_t tamanho_ac = huffman_ac_len[indice_ac];
+    
+    // Só escrever se o tamanho não for 0 (entrada válida na tabela)
+    if(tamanho_ac > 0) {
+        escrever_bits(buffer, codigo_ac, tamanho_ac);
+        
+        // Escrever amplitude se categoria > 0
+        if(categoria > 0) {
+            if(amplitude > 0) {
+                escrever_bits(buffer, amplitude, categoria);
+            } else {
+                // Para valores negativos, usar complemento
+                int amplitude_codigo = amplitude + (1 << categoria) - 1;
+                escrever_bits(buffer, amplitude_codigo, categoria);
+            }
+        }
+    }
 }
 
+//Decodifica simbolo AC usando tabelas Huffman
+//Parametros: buffer - ponteiro para o buffer, zeros - ponteiro para armazenar zeros, amplitude - ponteiro para amplitude
+//Retorno: void
 void decodificar_simbolo_ac(Buffer_Bits *buffer, int *zeros, int *amplitude) {
-    *zeros = ler_bits(buffer, 4);
-    *amplitude = decodificar_categoria_amplitude(buffer);
+    // Decodificar usando tabela Huffman AC
+    int indice_ac = decodificar_simbolo_ac_huffman(buffer);
+    
+    // Extrair zeros e categoria do índice
+    *zeros = (indice_ac >> 4) & 0x0F;  // 4 bits superiores
+    int categoria = indice_ac & 0x0F;   // 4 bits inferiores
+    
+    // Se categoria é 0, amplitude também é 0
+    if(categoria == 0) {
+        *amplitude = 0;
+        return;
+    }
+    
+    // Ler amplitude usando categoria
+    int codigo = ler_bits(buffer, categoria);
+    int limite = 1 << (categoria - 1);
+    
+    if(codigo >= limite) {
+        *amplitude = codigo; // Valor positivo
+    } else {
+        *amplitude = codigo - (1 << categoria) + 1; // Valor negativo
+    }
 }
 
 
 
+//Comprime um bloco usando codificacao Huffman
+//Parametros: bloco_huff - bloco com dados RLE a ser comprimido
+//Retorno: ponteiro para o bloco comprimido
 Bloco_Comprimido *comprimir_bloco_huffman(Bloco_Huffman *bloco_huff) {
     if(bloco_huff == NULL) return NULL;
     
@@ -174,6 +324,9 @@ Bloco_Comprimido *comprimir_bloco_huffman(Bloco_Huffman *bloco_huff) {
     return bloco_comp;
 }
 
+//Descomprime um bloco usando decodificacao Huffman
+//Parametros: bloco_comp - bloco comprimido, dc_anterior - valor DC do bloco anterior
+//Retorno: ponteiro para o bloco Huffman descomprimido
 Bloco_Huffman *descomprimir_bloco_huffman(Bloco_Comprimido *bloco_comp, int dc_anterior) {
     if(bloco_comp == NULL) return NULL;
     
@@ -216,6 +369,9 @@ Bloco_Huffman *descomprimir_bloco_huffman(Bloco_Comprimido *bloco_comp, int dc_a
     return bloco_huff;
 }
 
+//Libera memoria alocada para um bloco comprimido
+//Parametros: bloco_comp - ponteiro para o bloco comprimido
+//Retorno: void
 void liberar_bloco_comprimido(Bloco_Comprimido *bloco_comp) {
     if(bloco_comp != NULL) {
         if(bloco_comp->dados_bits != NULL) {
@@ -227,7 +383,10 @@ void liberar_bloco_comprimido(Bloco_Comprimido *bloco_comp) {
 
 
 
-int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_huffman, int largura, int altura, int qtd_blocos_y, int qtd_blocos_c) {
+//Salva imagem comprimida em arquivo binario
+//Parametros: nome_arquivo - nome do arquivo, blocos_huffman - blocos comprimidos, largura/altura - dimensoes originais, largura_c/altura_c - dimensoes com padding, qtd_blocos_y/c - quantidade de blocos por canal
+//Retorno: 1 se sucesso, 0 se erro
+int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_huffman, int largura, int altura, int largura_c, int altura_c, int qtd_blocos_y, int qtd_blocos_c) {
     
     FILE *arquivo = fopen(nome_arquivo, "wb");
     if(arquivo == NULL) return 0;
@@ -237,6 +396,8 @@ int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_h
     memcpy(cabecalho.assinatura, "BINC", 4);
     cabecalho.largura = largura;
     cabecalho.altura = altura;
+    cabecalho.largura_c = largura_c;    // Nova: dimensão real com padding
+    cabecalho.altura_c = altura_c;      // Nova: dimensão real com padding
     cabecalho.qtd_blocos_y = qtd_blocos_y;
     cabecalho.qtd_blocos_c = qtd_blocos_c;
     
@@ -286,7 +447,10 @@ int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_h
     return 1;
 }
 
-Bloco_Huffman ***carregar_imagem_comprimida(const char *nome_arquivo, int *largura, int *altura, int *qtd_blocos_y, int *qtd_blocos_c) {
+//Carrega imagem comprimida de arquivo binario
+//Parametros: nome_arquivo - nome do arquivo, largura/altura - ponteiros para dimensoes originais, largura_c/altura_c - ponteiros para dimensoes com padding, qtd_blocos_y/c - ponteiros para quantidade de blocos
+//Retorno: ponteiro para estrutura de blocos Huffman carregados
+Bloco_Huffman ***carregar_imagem_comprimida(const char *nome_arquivo, int *largura, int *altura, int *largura_c, int *altura_c, int *qtd_blocos_y, int *qtd_blocos_c) {
     
     FILE *arquivo = fopen(nome_arquivo, "rb");
     if(arquivo == NULL) return NULL;
@@ -303,6 +467,8 @@ Bloco_Huffman ***carregar_imagem_comprimida(const char *nome_arquivo, int *largu
     
     *largura = cabecalho.largura;
     *altura = cabecalho.altura;
+    *largura_c = cabecalho.largura_c;    // recuperar dimensão real
+    *altura_c = cabecalho.altura_c;      // recuperar dimensão real
     *qtd_blocos_y = cabecalho.qtd_blocos_y;
     *qtd_blocos_c = cabecalho.qtd_blocos_c;
     
@@ -357,45 +523,18 @@ Bloco_Huffman ***carregar_imagem_comprimida(const char *nome_arquivo, int *largu
 }
 
 
-void calcular_estatisticas_compressao(const char *nome_original, const char *nome_comprimido) {
-    
-    FILE *orig = fopen(nome_original, "rb");
-    FILE *comp = fopen(nome_comprimido, "rb");
-    
-    if(orig == NULL || comp == NULL) {
-        printf("Erro ao abrir arquivos para cálculo de estatísticas\n");
-        return;
-    }
-    
-    // Obter tamanhos
-    fseek(orig, 0, SEEK_END);
-    long tamanho_original = ftell(orig);
-    fseek(comp, 0, SEEK_END);
-    long tamanho_comprimido = ftell(comp);
-    
-    fclose(orig);
-    fclose(comp);
-    
-    double taxa_compressao = (double)tamanho_comprimido / tamanho_original;
-    double economia = (1.0 - taxa_compressao) * 100.0;
-    
-    printf("\n=== ESTATÍSTICAS DE COMPRESSÃO ===\n");
-    printf("Arquivo original: %ld bytes\n", tamanho_original);
-    printf("Arquivo comprimido: %ld bytes\n", tamanho_comprimido);
-    printf("Taxa de compressão: %.2f%%\n", taxa_compressao * 100.0);
-    printf("Economia de espaço: %.2f%%\n", economia);
-    printf("Fator de redução: %.2fx\n\n\n", 1.0 / taxa_compressao);
-    printf("=====================================\n\n");
-}
 
 
 
+//Executa descompressao completa de arquivo binario para BMP
+//Parametros: arquivo_bin - nome do arquivo binario comprimido, arquivo_bmp_saida - nome do arquivo BMP de saida
+//Retorno: 1 se sucesso, 0 se erro
 int descompressao_completa_bin_para_bmp(const char *arquivo_bin, const char *arquivo_bmp_saida) {
     
     
     // ETAPA 1: Carregar arquivo .bin
-    int largura, altura, qtd_blocos_y, qtd_blocos_c;
-    Bloco_Huffman ***blocos_huffman = carregar_imagem_comprimida(arquivo_bin, &largura, &altura, &qtd_blocos_y, &qtd_blocos_c);
+    int largura, altura, largura_c, altura_c, qtd_blocos_y, qtd_blocos_c;
+    Bloco_Huffman ***blocos_huffman = carregar_imagem_comprimida(arquivo_bin, &largura, &altura, &largura_c, &altura_c, &qtd_blocos_y, &qtd_blocos_c);
     
     if(blocos_huffman == NULL) {
         printf("Erro ao carregar arquivo .bin\n");
@@ -403,13 +542,13 @@ int descompressao_completa_bin_para_bmp(const char *arquivo_bin, const char *arq
     }
     
     
-    // ETAPA 2: Huffman → RLE
+    // ETAPA 2: Huffman -> RLE
     Bloco_RLE ***blocos_rle = decodificar_huffman(blocos_huffman, qtd_blocos_y, qtd_blocos_c);
     
-    // ETAPA 3: RLE → Vetores
+    // ETAPA 3: RLE -> Vetores
     int ***vetores = decodificar_rle(blocos_rle, qtd_blocos_y, qtd_blocos_c);
     
-    // ETAPA 4: Vetores -> Matrizes 8x8
+    // ETAPA 4: Vetores -> Matrizes 8x8 
     double ****blocos8x8 = matricizacao(vetores, qtd_blocos_y, qtd_blocos_c);
     
     // ETAPA 5: Quantização inversa
@@ -418,17 +557,7 @@ int descompressao_completa_bin_para_bmp(const char *arquivo_bin, const char *arq
     // ETAPA 6: DCT inversa
     DCT_inversa(blocos8x8, qtd_blocos_y, qtd_blocos_c);
     
-    // ETAPA 7: Reconstruir imagem YCbCr
-    // Calcular dimensões de crominância como na compressão (com padding)
-    int altura_c = altura / 2;
-    int largura_c = largura / 2;
-    
-    // Aplicar o mesmo padding que foi usado na compressão
-    if(altura_c % 8 != 0)
-        altura_c += 8 - (altura_c % 8);
-    if(largura_c % 8 != 0)
-        largura_c += 8 - (largura_c % 8);
-    
+    // ETAPA 7: Reconstruir imagem YCbCr usando dimensões corretas do arquivo
     Imagem_ycbcr *imagem_ycbcr = blocos_to_imagem(blocos8x8, altura, largura, altura_c, largura_c);
     
     // ETAPA 8: Level shift (+128)

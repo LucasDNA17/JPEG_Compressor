@@ -18,8 +18,8 @@
     typedef struct bmpfileheader{
         unsigned short bfType; /* Magic number for file */
         unsigned int bfSize; /* Size of file */
-        unsigned short bfReserved1; /* Reserved */
-        unsigned short bfReserved2; /* ... */
+        unsigned short bfReserved1; 
+        unsigned short bfReserved2;
         unsigned int bfOffBits; /* Offset to bitmap data */
     }BMPFILEHEADER;
 
@@ -28,7 +28,7 @@
         unsigned int biSize; /* Size of info header */
         int biWidth; /* Width of image */
         int biHeight; /* Height of image */
-        unsigned short biPlanes; /* Number of color planes */
+        unsigned short biPlanes; 
         unsigned short biBitCount; /* Number of bits per pixel */   
         unsigned int biCompression; /* Type of compression to use */
         unsigned int biSizeImage; /* Size of image data */
@@ -39,8 +39,6 @@
     }BMPINFOHEADER;
 
 
-    /* ----- Funções de leitura/escrita no FileHeader ----- */
-
     //Função que lê todas as informações do FileHeader de um arquivo BMP e as salva em uma struct.
     //Entrada: ponteiro para o arquivo BMP; struct FileHeader onde as informações serão salvas.
     //Saída: Nenhuma.
@@ -48,11 +46,8 @@
 
     //Função que escreve todas as informações de uma struct de FileHeader em um arquivo BMP.
     //Entrada: ponteiro para o arquivo BMP; struct FileHeader que contém as informações a serem salvas.
-    //Saída: Nenhuma.
     void escritaFileHeader(FILE *F, BMPFILEHEADER *H);
 
-
-    /* ----- Funções de leitura/escrita no InfoHeader ----- */
 
     //Função que lê todas as informações do InfoHeader de um arquivo BMP e as salva em uma struct.
     //Entrada: ponteiro para o arquivo BMP; struct InfoHeader onde as informações serão salvas.

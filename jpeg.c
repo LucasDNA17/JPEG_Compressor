@@ -8,8 +8,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//Executa compressao JPEG completa de arquivo BMP para binario
+//Parametros: arquivo_bmp_entrada - nome do arquivo BMP de entrada, arquivo_bin_saida - nome do arquivo binario de saida
+//Retorno: 1 se sucesso, 0 se erro
 int jpeg_comprime(const char* arquivo_bmp_entrada, const char* arquivo_bin_saida) {
-    printf("=== COMPRESSÃO ===\n");
+    //printf("COMPRESSÃO\n");
 
     
     // ETAPA 1: Verificação do arquivo de entrada
@@ -71,13 +74,17 @@ int jpeg_comprime(const char* arquivo_bmp_entrada, const char* arquivo_bin_saida
     
     downsampling(imagem_ycbcr);
     
+    // Capturar as dimensões reais após downsampling (com padding)
+    int largura_c_real = imagem_ycbcr->Width_c;
+    int altura_c_real = imagem_ycbcr->Height_c;
+    
     downLevelShift(imagem_ycbcr);
     
     double ****blocos8x8 = get_blocos8x8(imagem_ycbcr);
     
     // Cálculo da quantidade de blocos baseado nas dimensões reais
     int qtd_blocos_y = (infoheader.biHeight/8) * (infoheader.biWidth/8);
-    int qtd_blocos_c = (imagem_ycbcr->Height_c/8) * (imagem_ycbcr->Width_c/8);
+    int qtd_blocos_c = (altura_c_real/8) * (largura_c_real/8);
     
     DCT(blocos8x8, qtd_blocos_y, qtd_blocos_c);
     
@@ -91,29 +98,26 @@ int jpeg_comprime(const char* arquivo_bmp_entrada, const char* arquivo_bin_saida
     
     int sucesso = salvar_imagem_comprimida(arquivo_bin_saida, blocos_huffman,
                                           infoheader.biWidth, infoheader.biHeight,
+                                          largura_c_real, altura_c_real,  // Usar dimensões reais
                                           qtd_blocos_y, qtd_blocos_c);
     
     if(sucesso) {
-        printf("COMPRESSÃO EXECUTADA COM SUCESSO\n");
-        printf("Arquivo de saída: %s\n", arquivo_bin_saida);
+
         return 1;
     } else {
-        printf("ERRO: Falha na gravação do arquivo comprimido\n");
         return 0;
     }
 }
 
+//Executa descompressao JPEG completa de arquivo binario para BMP
+//Parametros: arquivo_bin_entrada - nome do arquivo binario comprimido, arquivo_bmp_saida - nome do arquivo BMP de saida
+//Retorno: 1 se sucesso, 0 se erro
 int jpeg_descomprime(const char* arquivo_bin_entrada, const char* arquivo_bmp_saida) {
-    printf("=== DESCOMPRESSÃO ===\n");
-    printf("Arquivo de entrada: %s\n", arquivo_bin_entrada);
-    printf("Arquivo de saída: %s\n\n", arquivo_bmp_saida);
     
     // Execução do pipeline completo de descompressão
     int sucesso = descompressao_completa_bin_para_bmp(arquivo_bin_entrada, arquivo_bmp_saida);
     
     if(sucesso) {
-        printf("DESCOMPRESSÃO EXECUTADA COM SUCESSO\n");
-        printf("Arquivo de saída: %s\n", arquivo_bmp_saida);
         return 1;
     } else {
         printf("ERRO: Falha no processo de descompressão\n");
@@ -121,10 +125,9 @@ int jpeg_descomprime(const char* arquivo_bin_entrada, const char* arquivo_bmp_sa
     }
 }
 
-void jpeg_estatisticas(const char* arquivo_original, const char* arquivo_comprimido) {
-    calcular_estatisticas_compressao(arquivo_original, arquivo_comprimido);
-}
-
+//Verifica se o arquivo BMP e compativel com o compressor JPEG
+//Parametros: arquivo_bmp - nome do arquivo BMP a ser verificado
+//Retorno: 1 se compativel, 0 se incompativel
 int jpeg_verificar_compatibilidade(const char* arquivo_bmp) {
     FILE *arquivo = fopen(arquivo_bmp, "rb");
     if(arquivo == NULL) {

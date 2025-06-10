@@ -2,15 +2,92 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>
 
 
-/* ----- Funções de vetorização/matricização de imagens ----- */
+// Tabelas DC
+const uint8_t huffman_dc_len[12] = { 2,3,3,3,3,3,4,5,6,7,8,9 };
+const uint16_t huffman_dc_code[12] = { 
+    0x000,0x002,0x003,0x004,0x005,0x006,
+    0x00e,0x01e,0x03e,0x07e,0x0fe,0x1fe 
+};
 
-//Função que transforma um bloco 8x8 de uma imagem em vetor. A vetorização segue
-//o padrão "zigue-zague" necessário à compressão JPEG. A função desaloca o espaço
-//de memória do bloco 8x8.
- int *vetorizacao_bloco8x8(double **bloco8x8) {
+// Tabelas AC
+const uint8_t huffman_ac_len[256] = {
+     4, 2, 2, 3, 4, 5, 7, 8,
+    10,16,16, 0, 0, 0, 0, 0,
+     0, 4, 5, 7, 9,11,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 5, 8,10,12,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 6, 9,12,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 6,10,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 7,11,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 7,12,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 8,12,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 9,15,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 9,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0, 9,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0,10,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0,10,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0,11,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+     0,16,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0,
+    11,16,16,16,16,16,16,16,
+    16,16,16, 0, 0, 0, 0, 0
+};
+
+const uint16_t huffman_ac_code[256] = {
+    0x000a,0x0000,0x0001,0x0004,0x000b,0x001a,0x0078,0x00f8,
+    0x03f6,0xff82,0xff83,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x000c,0x001b,0x0079,0x01f6,0x07f6,0xff84,0xff85,
+    0xff86,0xff87,0xff88,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x001c,0x00f9,0x03f7,0x0ff4,0xff89,0xff8a,0xff8b,
+    0xff8c,0xff8d,0xff8e,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x003a,0x01f7,0x0ff5,0xff8f,0xff90,0xff91,0xff92,
+    0xff93,0xff94,0xff95,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x003b,0x03f8,0xff96,0xff97,0xff98,0xff99,0xff9a,
+    0xff9b,0xff9c,0xff9d,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x007a,0x07f7,0xff9e,0xff9f,0xffa0,0xffa1,0xffa2,
+    0xffa3,0xffa4,0xffa5,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x007b,0x0ff6,0xffa6,0xffa7,0xffa8,0xffa9,0xffaa,
+    0xffab,0xffac,0xffad,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x00fa,0x0ff7,0xffae,0xffaf,0xffb0,0xffb1,0xffb2,
+    0xffb3,0xffb4,0xffb5,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x01f8,0x7fc0,0xffb6,0xffb7,0xffb8,0xffb9,0xffba,
+    0xffbb,0xffbc,0xffbd,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x01f9,0xffbe,0xffbf,0xffc0,0xffc1,0xffc2,0xffc3,
+    0xffc4,0xffc5,0xffc6,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x01fa,0xffc7,0xffc8,0xffc9,0xffca,0xffcb,0xffcc,
+    0xffcd,0xffce,0xffcf,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x03f9,0xffd0,0xffd1,0xffd2,0xffd3,0xffd4,0xffd5,
+    0xffd6,0xffd7,0xffd8,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x03fa,0xffd9,0xffda,0xffdb,0xffdc,0xffdd,0xffde,
+    0xffdf,0xffe0,0xffe1,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0x07f8,0xffe2,0xffe3,0xffe4,0xffe5,0xffe6,0xffe7,
+    0xffe8,0xffe9,0xffea,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x0000,0xffeb,0xffec,0xffed,0xffee,0xffef,0xfff0,0xfff1,
+    0xfff2,0xfff3,0xfff4,0x0000,0x0000,0x0000,0x0000,0x0000,
+    0x07f9,0xfff5,0xfff6,0xfff7,0xfff8,0xfff9,0xfffa,0xfffb,
+    0xfffc,0xfffd,0xfffe,0x0000,0x0000,0x0000,0x0000,0x0000
+};
+
+
+
+//Transforma um bloco 8x8 em vetor seguindo padrao zigue-zague
+//Parametros: bloco8x8 - matriz 8x8 de coeficientes DCT
+//Retorno: ponteiro para vetor de 64 elementos ordenados
+int *vetorizacao_bloco8x8(double **bloco8x8) {
     if(bloco8x8 == NULL) return NULL;
 
     //Matriz de índices pré-calculada em que o elemento a_ij representa
@@ -38,9 +115,9 @@
     return vetor;    
 }
 
-
-//Função que desfaz o processo de vetorização, gerando novamente um bloco 8x8 em formato de matriz.
-//A função desaloca o espaço de memória do vetor de coeficientes.
+//Reconstroi bloco 8x8 a partir de vetor ordenado zigue-zague
+//Parametros: vetor - vetor de 64 coeficientes ordenados
+//Retorno: ponteiro para matriz 8x8 reconstruida
 double **matricizacao_bloco8x8(int *vetor) {
     if(vetor == NULL) return NULL;
 
@@ -69,9 +146,9 @@ double **matricizacao_bloco8x8(int *vetor) {
     return bloco8x8;    
 }
 
-
-//Função que transforma os blocos 8x8 de uma imagem em vetores. A vetorização segue
-//o padrão "zigue-zague" necessário à compressão JPEG.
+//Vetoriza todos os blocos 8x8 da imagem
+//Parametros: blocos8x8 - matriz de blocos por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de vetores por canal
 int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos8x8 == NULL) return NULL;
 
@@ -101,7 +178,9 @@ int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
     return vetores;
 }
 
-//Função que desfaz o processo de vetorização, gerando novamente os blocos 8x8 em formato de matriz.
+//Reconstroi todos os blocos 8x8 a partir dos vetores
+//Parametros: vetor - estrutura de vetores por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de blocos 8x8 por canal
 double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetor == NULL) return NULL;
 
@@ -133,6 +212,9 @@ double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
 }
 
 
+//Codifica um vetor de coeficientes usando Run-Length Encoding
+//Parametros: vetor - vetor de 64 coeficientes DCT
+//Retorno: ponteiro para bloco RLE codificado
 Bloco_RLE *codificar_bloco_rle(int *vetor) {
     if(vetor == NULL) return NULL;
     
@@ -174,7 +256,9 @@ Bloco_RLE *codificar_bloco_rle(int *vetor) {
     return bloco_rle;
 }
 
-
+//Decodifica um bloco RLE de volta para vetor de coeficientes
+//Parametros: bloco_rle - bloco codificado em RLE
+//Retorno: ponteiro para vetor de 64 coeficientes decodificados
 int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
     if(bloco_rle == NULL) return NULL;
     
@@ -198,7 +282,7 @@ int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
         // Pula 'zeros' zeros (ja inicializados como zero)
         pos += zeros;
         
-        // Coloca o valor nao zero
+        // Coloca a amplitude na posicao atual
         if(pos < 64) {
             vetor[pos] = amplitude;
             pos++;
@@ -208,66 +292,59 @@ int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
     return vetor;
 }
 
-
+//Aplica codificacao RLE a todos os vetores da imagem
+//Parametros: vetores - estrutura de vetores por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de blocos RLE por canal
 Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetores == NULL) return NULL;
     
-    Bloco_RLE ***blocos_rle = (Bloco_RLE ***) malloc(3 * sizeof(Bloco_RLE **));
+    Bloco_RLE ***blocos_rle = (Bloco_RLE ***) malloc(3*sizeof(Bloco_RLE **));
     
-    // Codifica blocos Y
-    blocos_rle[0] = (Bloco_RLE **) malloc(qtd_blocos_y * sizeof(Bloco_RLE *));
+    // Canal Y
+    blocos_rle[0] = (Bloco_RLE **) malloc(qtd_blocos_y*sizeof(Bloco_RLE *));
     for(int i = 0; i < qtd_blocos_y; i++) {
         blocos_rle[0][i] = codificar_bloco_rle(vetores[0][i]);
     }
     
-    // Codifica blocos Cb
-    blocos_rle[1] = (Bloco_RLE **) malloc(qtd_blocos_c * sizeof(Bloco_RLE *));
+    // Canais Cb e Cr
+    blocos_rle[1] = (Bloco_RLE **) malloc(qtd_blocos_c*sizeof(Bloco_RLE *));
+    blocos_rle[2] = (Bloco_RLE **) malloc(qtd_blocos_c*sizeof(Bloco_RLE *));
     for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_rle[1][i] = codificar_bloco_rle(vetores[1][i]);
-    }
-    
-    // Codifica blocos Cr
-    blocos_rle[2] = (Bloco_RLE **) malloc(qtd_blocos_c * sizeof(Bloco_RLE *));
-    for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_rle[2][i] = codificar_bloco_rle(vetores[2][i]);
     }
-    
-    free(vetores[0]); 
-    free(vetores[1]); 
-    free(vetores[2]);
-    free(vetores);
     
     return blocos_rle;
 }
 
-
+//Decodifica todos os blocos RLE de volta para vetores
+//Parametros: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de vetores decodificados por canal
 int ***decodificar_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return NULL;
     
-    int ***vetores = (int ***) malloc(3 * sizeof(int **));
+    int ***vetores = (int ***) malloc(3*sizeof(int **));
     
-    // Decodifica blocos Y
-    vetores[0] = (int **) malloc(qtd_blocos_y * sizeof(int *));
+    // Canal Y
+    vetores[0] = (int **) malloc(qtd_blocos_y*sizeof(int *));
     for(int i = 0; i < qtd_blocos_y; i++) {
         vetores[0][i] = decodificar_bloco_rle(blocos_rle[0][i]);
     }
     
-    // Decodifica blocos Cb
-    vetores[1] = (int **) malloc(qtd_blocos_c * sizeof(int *));
+    // Canais Cb e Cr
+    vetores[1] = (int **) malloc(qtd_blocos_c*sizeof(int *));
+    vetores[2] = (int **) malloc(qtd_blocos_c*sizeof(int *));
     for(int i = 0; i < qtd_blocos_c; i++) {
         vetores[1][i] = decodificar_bloco_rle(blocos_rle[1][i]);
-    }
-    
-    // Decodifica blocos Cr
-    vetores[2] = (int **) malloc(qtd_blocos_c * sizeof(int *));
-    for(int i = 0; i < qtd_blocos_c; i++) {
         vetores[2][i] = decodificar_bloco_rle(blocos_rle[2][i]);
     }
     
     return vetores;
 }
 
-// Libera memoria de um bloco RLE
+//Libera memoria alocada para um bloco RLE
+//Parametros: bloco_rle - ponteiro para bloco RLE
+//Retorno: void
 void liberar_bloco_rle(Bloco_RLE *bloco_rle) {
     if(bloco_rle != NULL) {
         if(bloco_rle->pares_ac != NULL) {
@@ -277,187 +354,161 @@ void liberar_bloco_rle(Bloco_RLE *bloco_rle) {
     }
 }
 
-
+//Libera memoria de todos os blocos RLE da imagem
+//Parametros: blocos_rle - estrutura de blocos RLE, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: void
 void liberar_blocos_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return;
     
-    // Libera blocos Y
+    // Libera canal Y
     for(int i = 0; i < qtd_blocos_y; i++) {
         liberar_bloco_rle(blocos_rle[0][i]);
     }
     free(blocos_rle[0]);
     
-    // Libera blocos Cb e Cr
+    // Libera canais Cb e Cr
     for(int i = 0; i < qtd_blocos_c; i++) {
         liberar_bloco_rle(blocos_rle[1][i]);
         liberar_bloco_rle(blocos_rle[2][i]);
     }
     free(blocos_rle[1]);
     free(blocos_rle[2]);
-    
     free(blocos_rle);
 }
 
 
-// // Funcao de debug para imprimir informacoes do RLE
-// void imprimir_debug_rle(Bloco_RLE *bloco_rle) {
-//     if(bloco_rle == NULL) {
-//         printf("Bloco RLE eh NULL\n");
-//         return;
-//     }
-    
-//     printf("DC: %d\n", bloco_rle->dc);
-//     printf("Numero de pares AC: %d\n", bloco_rle->num_pares);
-    
-//     for(int i = 0; i < bloco_rle->num_pares; i++) {
-//         printf("Par %d: (%d, %d)\n", i, 
-//                bloco_rle->pares_ac[i].zeros_consecutivos, 
-//                bloco_rle->pares_ac[i].amplitude);
-//     }
-//     printf("\n");
-// }
 
-
-
-// Funcao auxiliar para estimar bits de compressao
-// int estimar_bits_huffman(Bloco_RLE *bloco_rle) {
-//     int total_bits = 0;
+//Obtem codigo de amplitude JPEG para um valor e categoria
+//Parametros: valor - valor a ser codificado, categoria - categoria do valor
+//Retorno: codigo de amplitude correspondente
+int obter_codigo_amplitude(int valor, int categoria) {
+    if(categoria == 0) return 0;
     
-//     // DC: categoria + amplitude (estimativa)
-//     int dc_categoria = (bloco_rle->dc == 0) ? 0 : (int)(log2(abs(bloco_rle->dc)) + 1);
-//     total_bits += 3 + dc_categoria;  // 3 bits Huffman + categoria bits amplitude
-    
-//     // ACs: estimativa baseada em zeros e amplitudes
-//     for(int i = 0; i < bloco_rle->num_pares; i++) {
-//         int zeros = bloco_rle->pares_ac[i].zeros_consecutivos;
-//         int amplitude = bloco_rle->pares_ac[i].amplitude;
-        
-//         if(zeros == 0 && amplitude == 0) {
-//             total_bits += 4;  // EOB
-//         } else {
-//             int ac_categoria = (amplitude == 0) ? 0 : (int)(log2(abs(amplitude)) + 1);
-//             total_bits += 8 + ac_categoria;  // 8 bits simbolo + amplitude
-//         }
-//     }
-    
-//     return total_bits;
-// }
+    if(valor > 0) {
+        return valor;
+    } else {
+        // Para valores negativos, usa complemento
+        return valor + (1 << categoria) - 1;
+    }
+}
 
-// Codifica um bloco usando Huffman
+//Codifica um bloco RLE usando representacao Huffman
+//Parametros: bloco_rle - bloco RLE a ser codificado, dc_anterior - valor DC do bloco anterior
+//Retorno: ponteiro para bloco Huffman codificado
 Bloco_Huffman *codificar_bloco_huffman(Bloco_RLE *bloco_rle, int dc_anterior) {
     if(bloco_rle == NULL) return NULL;
     
     Bloco_Huffman *bloco_huff = (Bloco_Huffman *) malloc(sizeof(Bloco_Huffman));
     
-    // DPCM para DC
+    // Calcula diferença DC usando DPCM
     bloco_huff->diferenca_dc = bloco_rle->dc - dc_anterior;
+    bloco_huff->tamanho_original = bloco_rle->num_pares;
     
-    //bloco_huff->total_bits = estimar_bits_huffman(bloco_rle);
-    
-    // Armazenar dados originais
+    // Cria cópia dos dados originais para compatibilidade com Compressao.c
     bloco_huff->dados_originais = (Bloco_RLE *) malloc(sizeof(Bloco_RLE));
     bloco_huff->dados_originais->dc = bloco_rle->dc;
     bloco_huff->dados_originais->num_pares = bloco_rle->num_pares;
-    bloco_huff->dados_originais->pares_ac = (Par_RLE *) malloc(bloco_rle->num_pares * sizeof(Par_RLE));
     
-    for(int i = 0; i < bloco_rle->num_pares; i++) {
-        bloco_huff->dados_originais->pares_ac[i] = bloco_rle->pares_ac[i];
+    if(bloco_rle->num_pares > 0 && bloco_rle->pares_ac != NULL) {
+        bloco_huff->dados_originais->pares_ac = (Par_RLE *) malloc(bloco_rle->num_pares * sizeof(Par_RLE));
+        for(int i = 0; i < bloco_rle->num_pares; i++) {
+            bloco_huff->dados_originais->pares_ac[i] = bloco_rle->pares_ac[i];
+        }
+    } else {
+        bloco_huff->dados_originais->pares_ac = NULL;
     }
     
     return bloco_huff;
 }
 
-// Decodifica um bloco Huffman de volta para RLE
 Bloco_RLE *decodificar_bloco_huffman(Bloco_Huffman *bloco_huff, int *dc_anterior) {
-    if(bloco_huff == NULL) return NULL;
+    if(bloco_huff == NULL || dc_anterior == NULL) return NULL;
     
+    // Reconstrói bloco RLE a partir dos dados originais
     Bloco_RLE *bloco_rle = (Bloco_RLE *) malloc(sizeof(Bloco_RLE));
     
-    // Atualizar DC usando DPCM
-    *dc_anterior += bloco_huff->diferenca_dc;
+    // Reconstrói DC usando DPCM
+    bloco_rle->dc = *dc_anterior + bloco_huff->diferenca_dc;
+    *dc_anterior = bloco_rle->dc;
     
-    // Copiar dados originais armazenados
-    bloco_rle->dc = bloco_huff->dados_originais->dc;
+    // Copia dados AC dos dados originais
     bloco_rle->num_pares = bloco_huff->dados_originais->num_pares;
-    bloco_rle->pares_ac = (Par_RLE *) malloc(bloco_rle->num_pares * sizeof(Par_RLE));
     
-    for(int i = 0; i < bloco_rle->num_pares; i++) {
-        bloco_rle->pares_ac[i] = bloco_huff->dados_originais->pares_ac[i];
+    if(bloco_rle->num_pares > 0 && bloco_huff->dados_originais->pares_ac != NULL) {
+        bloco_rle->pares_ac = (Par_RLE *) malloc(bloco_rle->num_pares * sizeof(Par_RLE));
+        for(int i = 0; i < bloco_rle->num_pares; i++) {
+            bloco_rle->pares_ac[i] = bloco_huff->dados_originais->pares_ac[i];
+        }
+    } else {
+        bloco_rle->pares_ac = NULL;
+        bloco_rle->num_pares = 0;
     }
     
     return bloco_rle;
 }
 
-// Codifica todos os blocos usando Huffman
+//Aplica codificacao Huffman a todos os blocos RLE da imagem
+//Parametros: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de blocos Huffman por canal
 Bloco_Huffman ***codificar_huffman(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return NULL;
     
-    Bloco_Huffman ***blocos_huff = (Bloco_Huffman ***) malloc(3 * sizeof(Bloco_Huffman **));
+    Bloco_Huffman ***blocos_huff = (Bloco_Huffman ***) malloc(3*sizeof(Bloco_Huffman **));
     
-    // Codificar blocos Y
-    blocos_huff[0] = (Bloco_Huffman **) malloc(qtd_blocos_y * sizeof(Bloco_Huffman *));
+    // Canal Y
+    blocos_huff[0] = (Bloco_Huffman **) malloc(qtd_blocos_y*sizeof(Bloco_Huffman *));
     int dc_anterior_y = 0;
     for(int i = 0; i < qtd_blocos_y; i++) {
         blocos_huff[0][i] = codificar_bloco_huffman(blocos_rle[0][i], dc_anterior_y);
-        if(blocos_huff[0][i] != NULL) {
-            dc_anterior_y += blocos_huff[0][i]->diferenca_dc;
-        }
+        dc_anterior_y = blocos_rle[0][i]->dc;
     }
     
-    // Codificar blocos Cb
-    blocos_huff[1] = (Bloco_Huffman **) malloc(qtd_blocos_c * sizeof(Bloco_Huffman *));
-    int dc_anterior_cb = 0;
+    // Canais Cb e Cr
+    blocos_huff[1] = (Bloco_Huffman **) malloc(qtd_blocos_c*sizeof(Bloco_Huffman *));
+    blocos_huff[2] = (Bloco_Huffman **) malloc(qtd_blocos_c*sizeof(Bloco_Huffman *));
+    
+    int dc_anterior_cb = 0, dc_anterior_cr = 0;
     for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_huff[1][i] = codificar_bloco_huffman(blocos_rle[1][i], dc_anterior_cb);
-        if(blocos_huff[1][i] != NULL) {
-            dc_anterior_cb += blocos_huff[1][i]->diferenca_dc;
-        }
-    }
-    
-    // Codificar blocos Cr
-    blocos_huff[2] = (Bloco_Huffman **) malloc(qtd_blocos_c * sizeof(Bloco_Huffman *));
-    int dc_anterior_cr = 0;
-    for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_huff[2][i] = codificar_bloco_huffman(blocos_rle[2][i], dc_anterior_cr);
-        if(blocos_huff[2][i] != NULL) {
-            dc_anterior_cr += blocos_huff[2][i]->diferenca_dc;
-        }
+        dc_anterior_cb = blocos_rle[1][i]->dc;
+        dc_anterior_cr = blocos_rle[2][i]->dc;
     }
     
     return blocos_huff;
 }
 
-// Decodifica todos os blocos Huffman
+//Decodifica todos os blocos Huffman de volta para blocos RLE
+//Parametros: blocos_huff - estrutura de blocos Huffman por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: ponteiro para estrutura de blocos RLE decodificados por canal
 Bloco_RLE ***decodificar_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_huff == NULL) return NULL;
     
-    Bloco_RLE ***blocos_rle = (Bloco_RLE ***) malloc(3 * sizeof(Bloco_RLE **));
+    Bloco_RLE ***blocos_rle = (Bloco_RLE ***) malloc(3*sizeof(Bloco_RLE **));
     
-    // Decodificar blocos Y
-    blocos_rle[0] = (Bloco_RLE **) malloc(qtd_blocos_y * sizeof(Bloco_RLE *));
+    // Canal Y
+    blocos_rle[0] = (Bloco_RLE **) malloc(qtd_blocos_y*sizeof(Bloco_RLE *));
     int dc_anterior_y = 0;
     for(int i = 0; i < qtd_blocos_y; i++) {
         blocos_rle[0][i] = decodificar_bloco_huffman(blocos_huff[0][i], &dc_anterior_y);
     }
     
-    // Decodificar blocos Cb
-    blocos_rle[1] = (Bloco_RLE **) malloc(qtd_blocos_c * sizeof(Bloco_RLE *));
-    int dc_anterior_cb = 0;
+    // Canais Cb e Cr
+    blocos_rle[1] = (Bloco_RLE **) malloc(qtd_blocos_c*sizeof(Bloco_RLE *));
+    blocos_rle[2] = (Bloco_RLE **) malloc(qtd_blocos_c*sizeof(Bloco_RLE *));
+    
+    int dc_anterior_cb = 0, dc_anterior_cr = 0;
     for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_rle[1][i] = decodificar_bloco_huffman(blocos_huff[1][i], &dc_anterior_cb);
-    }
-    
-    // Decodificar blocos Cr
-    blocos_rle[2] = (Bloco_RLE **) malloc(qtd_blocos_c * sizeof(Bloco_RLE *));
-    int dc_anterior_cr = 0;
-    for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_rle[2][i] = decodificar_bloco_huffman(blocos_huff[2][i], &dc_anterior_cr);
     }
     
     return blocos_rle;
 }
 
-// Libera memoria de um bloco Huffman
+//Libera memoria alocada para um bloco Huffman
+//Parametros: bloco_huff - ponteiro para bloco Huffman
+//Retorno: void
 void liberar_bloco_huffman(Bloco_Huffman *bloco_huff) {
     if(bloco_huff != NULL) {
         if(bloco_huff->dados_originais != NULL) {
@@ -467,24 +518,25 @@ void liberar_bloco_huffman(Bloco_Huffman *bloco_huff) {
     }
 }
 
-// Libera todos os blocos Huffman
+//Libera memoria de todos os blocos Huffman da imagem
+//Parametros: blocos_huff - estrutura de blocos Huffman, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Retorno: void
 void liberar_blocos_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_huff == NULL) return;
     
-    // Liberar blocos Y
+    // Libera canal Y
     for(int i = 0; i < qtd_blocos_y; i++) {
         liberar_bloco_huffman(blocos_huff[0][i]);
     }
     free(blocos_huff[0]);
     
-    // Liberar blocos Cb e Cr
+    // Libera canais Cb e Cr
     for(int i = 0; i < qtd_blocos_c; i++) {
         liberar_bloco_huffman(blocos_huff[1][i]);
         liberar_bloco_huffman(blocos_huff[2][i]);
     }
     free(blocos_huff[1]);
     free(blocos_huff[2]);
-    
     free(blocos_huff);
 }
 

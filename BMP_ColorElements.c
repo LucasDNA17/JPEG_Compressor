@@ -239,11 +239,29 @@ void upsampling(Imagem_ycbcr *imagem) {
     double **matrix_Cr = (double **) aloca_matrix(1, imagem->Height, imagem->Width);
 
     int fileira = 0, coluna = 0;
+    
+    // CORREÇÃO: iterar com dimensões de crominância, não da luminância
     for(int i = 0; i < imagem->Height; i += 2) {
         coluna = 0;
         for(int j = 0; j < imagem->Width; j += 2) {
-            matrix_Cr[i][j] = matrix_Cr[i + 1][j] = matrix_Cr[i][j + 1] = matrix_Cr[i +1][j + 1] = (imagem->Cr)[fileira][coluna];
-            matrix_Cb[i][j] = matrix_Cb[i + 1][j] = matrix_Cb[i][j + 1] = matrix_Cb[i +1][j + 1] = (imagem->Cb)[fileira][coluna];
+            // CORREÇÃO: verificar bounds antes de escrever
+            if(i + 1 < imagem->Height && j + 1 < imagem->Width && 
+               fileira < imagem->Height_c && coluna < imagem->Width_c) {
+                
+                // CORREÇÃO: corrigir espaçamento e ordem de atribuição
+                double valor_cr = (imagem->Cr)[fileira][coluna];
+                double valor_cb = (imagem->Cb)[fileira][coluna];
+                
+                matrix_Cr[i][j] = valor_cr;
+                matrix_Cr[i + 1][j] = valor_cr;
+                matrix_Cr[i][j + 1] = valor_cr;
+                matrix_Cr[i + 1][j + 1] = valor_cr;
+                
+                matrix_Cb[i][j] = valor_cb;
+                matrix_Cb[i + 1][j] = valor_cb;
+                matrix_Cb[i][j + 1] = valor_cb;
+                matrix_Cb[i + 1][j + 1] = valor_cb;
+            }
             coluna++;
         }
         fileira++;
@@ -251,7 +269,6 @@ void upsampling(Imagem_ycbcr *imagem) {
 
     desaloca_matrix((void **)imagem->Cb, (imagem->Height_c), (imagem->Width_c));
     desaloca_matrix((void **)imagem->Cr, (imagem->Height_c), (imagem->Width_c));
-
 
     imagem->Height_c = imagem->Height;
     imagem->Width_c = imagem->Width;
@@ -351,7 +368,6 @@ double ****get_blocos8x8 (Imagem_ycbcr *imagem) {
     double ***blocos8x8_cb = (double ***) malloc(qtd_blocos_c*sizeof(double **));
     double ***blocos8x8_cr = (double ***) malloc(qtd_blocos_c*sizeof(double **));
 
-
     if(blocos8x8_y == NULL || blocos8x8_cb == NULL || blocos8x8_cr == NULL) {
         printf("Erro na alocação do vetor de blocos8x8!\n");
         return NULL;
@@ -365,29 +381,39 @@ double ****get_blocos8x8 (Imagem_ycbcr *imagem) {
         blocos8x8_cr[i] = (double **) aloca_matrix(1, 8, 8);
     }
 
-    int *indices_y = get_indices_blocos(imagem->Height, imagem->Width);
-    int *indices_c = get_indices_blocos(imagem->Height_c, imagem->Width_c);
-
-
-    int indice_atual = 0;
-    for(int i = 0; i < qtd_blocos_y; i++) {
-        for(int j = 0; j < 8; j++)
-            for(int k = 0; k < 8; k++) {
-                (blocos8x8_y[i])[j][k] = (imagem->Y)[indices_y[indice_atual] + j][indices_y[indice_atual + 1] + k]; 
+    // USAR A MESMA ORDENAÇÃO DIRETA para evitar inconsistências
+    
+    // Extrair blocos do canal Y
+    int bloco_idx = 0;
+    for(int linha_bloco = 0; linha_bloco < imagem->Height/8; linha_bloco++) {
+        for(int coluna_bloco = 0; coluna_bloco < imagem->Width/8; coluna_bloco++) {
+            int linha_base = linha_bloco * 8;
+            int coluna_base = coluna_bloco * 8;
+            
+            for(int i = 0; i < 8; i++) {
+                for(int j = 0; j < 8; j++) {
+                    (blocos8x8_y[bloco_idx])[i][j] = (imagem->Y)[linha_base + i][coluna_base + j];
+                }
             }
-
-        indice_atual += 2;
+            bloco_idx++;
+        }
     }
 
-    indice_atual = 0;
-    for(int i = 0; i < qtd_blocos_c; i++) {
-        for(int j = 0; j < 8; j++)
-            for(int k = 0; k < 8; k++) {
-                (blocos8x8_cb[i])[j][k] = (imagem->Cb)[indices_c[indice_atual] + j][indices_c[indice_atual + 1] + k];
-                (blocos8x8_cr[i])[j][k] = (imagem->Cr)[indices_c[indice_atual] + j][indices_c[indice_atual + 1] + k]; 
+    // Extrair blocos dos canais Cb e Cr
+    bloco_idx = 0;
+    for(int linha_bloco = 0; linha_bloco < imagem->Height_c/8; linha_bloco++) {
+        for(int coluna_bloco = 0; coluna_bloco < imagem->Width_c/8; coluna_bloco++) {
+            int linha_base = linha_bloco * 8;
+            int coluna_base = coluna_bloco * 8;
+            
+            for(int i = 0; i < 8; i++) {
+                for(int j = 0; j < 8; j++) {
+                    (blocos8x8_cb[bloco_idx])[i][j] = (imagem->Cb)[linha_base + i][coluna_base + j];
+                    (blocos8x8_cr[bloco_idx])[i][j] = (imagem->Cr)[linha_base + i][coluna_base + j];
+                }
             }
-
-        indice_atual += 2;
+            bloco_idx++;
+        }
     }
 
     double ****blocos8x8 = (double ****) malloc(3*sizeof(double ***));
@@ -400,8 +426,6 @@ double ****get_blocos8x8 (Imagem_ycbcr *imagem) {
     blocos8x8[1] = blocos8x8_cb;
     blocos8x8[2] = blocos8x8_cr;
 
-    if(indices_y != NULL) free(indices_y);
-    if(indices_c != NULL) free(indices_c);
     desaloca_imagem_ycbcr(imagem);
 
     return blocos8x8;
@@ -413,40 +437,52 @@ Imagem_ycbcr *blocos_to_imagem(double ****blocos, int Height, int Width, int Hei
     int qtd_blocos_y = (imagem->Height/8)*(imagem->Width/8);
     int qtd_blocos_c = (imagem->Height_c/8)*(imagem->Width_c/8);
 
-    int *indices_y = get_indices_blocos(imagem->Height, imagem->Width);
-    int *indices_c = get_indices_blocos(imagem->Height_c, imagem->Width_c);
-
-    int indice_atual = 0;
-    for(int i = 0; i < qtd_blocos_y; i++) {
-        for(int j = 0; j < 8; j++)
-            for(int k = 0; k < 8; k++) {
-                (imagem->Y)[indices_y[indice_atual] + j][indices_y[indice_atual + 1] + k] =  (blocos[0][i])[j][k]; 
+    // Reconstruir canal Y
+    int bloco_idx = 0;
+    for(int linha_bloco = 0; linha_bloco < Height/8; linha_bloco++) {
+        for(int coluna_bloco = 0; coluna_bloco < Width/8; coluna_bloco++) {
+            int linha_base = linha_bloco * 8;
+            int coluna_base = coluna_bloco * 8;
+            
+            for(int i = 0; i < 8; i++) {
+                for(int j = 0; j < 8; j++) {
+                    (imagem->Y)[linha_base + i][coluna_base + j] = (blocos[0][bloco_idx])[i][j];
+                }
             }
-
-        desaloca_matrix((void **) blocos[0][i], 8, 8);
-        indice_atual += 2;
+            bloco_idx++;
+        }
     }
 
-
-    indice_atual = 0;
-    for(int i = 0; i < qtd_blocos_c; i++) {
-        for(int j = 0; j < 8; j++)
-            for(int k = 0; k < 8; k++) {
-                (imagem->Cb)[indices_c[indice_atual] + j][indices_c[indice_atual + 1] + k] = (blocos[1][i])[j][k];
-                (imagem->Cr)[indices_c[indice_atual] + j][indices_c[indice_atual + 1] + k] = (blocos[2][i])[j][k];  
+    // Reconstruir canais Cb e Cr 
+    bloco_idx = 0;
+    for(int linha_bloco = 0; linha_bloco < Height_c/8; linha_bloco++) {
+        for(int coluna_bloco = 0; coluna_bloco < Width_c/8; coluna_bloco++) {
+            int linha_base = linha_bloco * 8;
+            int coluna_base = coluna_bloco * 8;
+            
+            for(int i = 0; i < 8; i++) {
+                for(int j = 0; j < 8; j++) {
+                    (imagem->Cb)[linha_base + i][coluna_base + j] = (blocos[1][bloco_idx])[i][j];
+                    (imagem->Cr)[linha_base + i][coluna_base + j] = (blocos[2][bloco_idx])[i][j];
+                }
             }
+            bloco_idx++;
+        }
+    }
 
+    // Desalocar blocos apenas APÓS a reconstrução completa
+    for(int i = 0; i < qtd_blocos_y; i++) {
+        desaloca_matrix((void **) blocos[0][i], 8, 8);
+    }
+    for(int i = 0; i < qtd_blocos_c; i++) {
         desaloca_matrix((void **) blocos[1][i], 8, 8);
         desaloca_matrix((void **) blocos[2][i], 8, 8);
-        indice_atual += 2;
     }
 
     for(int i = 0; i < 3; i++)
         if(blocos[i] != NULL) free(blocos[i]);
 
     if(blocos != NULL) free(blocos);
-    if(indices_y != NULL) free(indices_y);
-    if(indices_c != NULL) free(indices_c);
     
     return imagem;
 }
