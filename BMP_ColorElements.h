@@ -33,6 +33,9 @@
     } Imagem_ycbcr;
 
 
+    /* ----- Funções de leitura/escrita de imagem ----- */
+
+
     //Função que lê uma imagem BMP no formato RGB e retorna uma struct desse formato.
     //Entrada: ponteiro para o arquivo BMP; altura e comprimento da imagem
     //Saída: ponteiro para struct Imagem_rgb que armazena a imagem.   
@@ -44,7 +47,9 @@
     void storeImage(FILE *F, Imagem_rgb *imagem);
 
 
-    
+    /* ----- Funções de conversão RGB/YCbCr ----- */
+
+
     //Função que "converte" uma struct de imagem RGB para uma no formato YCbCr.
     //Entrada: ponteiro para a struct Imagem_rgb.
     //Saída: ponteiro para a struct Imagem_Ycbcr que contém os pixels convertidos.
@@ -56,6 +61,7 @@
     Imagem_rgb *YCbCrtoRGB(Imagem_ycbcr *imagem);
 
 
+    /* ----- Funções de downsampling/upsampling ----- */
 
 
     //Função que realiza o downsampling 4:2:0 em uma imagem no formato YCbCr.
@@ -69,6 +75,9 @@
     void upsampling(Imagem_ycbcr *imagem);
 
 
+    /* ----- Funções de levelshift ----- */
+
+
     //Função que realiza o downshift em uma imagem BMP, isto é, subtrai 128 do canal Y de cada pixel.
     //Entrada: ponteiro para struct da imagem no formato YCbCr.
     //Saída:nenhuma.
@@ -78,6 +87,9 @@
     //Entrada: ponteiro para struct da imagem no formato YCbCr.
     //Saída:nenhuma.
     void upLevelShift(Imagem_ycbcr *imagem);
+
+
+    /* ----- Funções de divisão da imagem em blocos 8x8 ----- */
 
 
     //Função que divide uma imagem BMP no formato YCbCr em blocos 8x8 de pixels.

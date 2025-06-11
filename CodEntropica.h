@@ -33,8 +33,26 @@
     extern const uint16_t huffman_ac_code[256];
 
 
+    /* ----- Funções de vetorização/matricização de blocos 8x8 ----- */
+
+
+    //Função que vetoriza todos os blocos 8x8 de uma imagem.
+    //Entrada: ponteiro quádruplo para double em que a indexação mais exterior representa o canal de informação
+    //da imagem (0 - Y; 1 - Cb; 2 - Cr); a segunda mais exterior representa o bloco 8x8 (1º, 2º, etc.); e as últimas
+    //indexações representam o bloco 8x8 em si, no formato de matriz; quantidade de blocos nos canais de crominância
+    //e luminância; quantidade de blocos dos canais de luminância e crominância.
+    //Saída: ponteiro para estrutura de vetores por canal de informação.
     int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c);
+
+
+    //Função que reconstrói todos os blocos 8x8 a partir dos vetores correspondentes.
+    //Entrada: conjunto de vetores por canal de inforamção; quantidade de blocos dos canais
+    //de luminância e crominância.
+    //Saída: ponteiro para estrutura de blocos 8x8 por canal (igual à entrada da função de vetorização).
     double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c);
+
+
+
     Bloco_RLE *codificar_bloco_rle(int *vetor);
     int *decodificar_bloco_rle(Bloco_RLE *bloco_rle);
     Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c);

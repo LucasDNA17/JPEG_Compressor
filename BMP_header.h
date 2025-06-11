@@ -39,6 +39,9 @@
     }BMPINFOHEADER;
 
 
+    /* ----- Funções de leitura/escrita no FileHeader ----- */
+
+
     //Função que lê todas as informações do FileHeader de um arquivo BMP e as salva em uma struct.
     //Entrada: ponteiro para o arquivo BMP; struct FileHeader onde as informações serão salvas.
     //Saída: Nenhuma.
@@ -46,7 +49,11 @@
 
     //Função que escreve todas as informações de uma struct de FileHeader em um arquivo BMP.
     //Entrada: ponteiro para o arquivo BMP; struct FileHeader que contém as informações a serem salvas.
+    //Saída: nenhuma.
     void escritaFileHeader(FILE *F, BMPFILEHEADER *H);
+
+
+    /* ----- Funções de leitura/escrita no InfoHeader ----- */
 
 
     //Função que lê todas as informações do InfoHeader de um arquivo BMP e as salva em uma struct.

@@ -1,28 +1,40 @@
 #include "matrix.h"
 
+
+//Função que desaloca uma matriz.
+//Entrada: ponteiro duplo para o tipo void (é preciso que o ponteiro para a matriz
+//fornecida seja convertido para o tipo void na chamada da função); altura e largura
+//da matriz.
+//Saída: nenhuma.
 void desaloca_matrix(void **matrix, int Height, int Width) {
     if(matrix == NULL)
         return;
 
+    //Desaloca cada vetor da matriz.
     for(int i = 0; i < Height;i++)
         for(int j = 0; j < Width; j++) {
             free(matrix[i]);
             matrix[i] = NULL;
         }
 
+    //Desaloca a matriz.
     free(matrix);
     matrix = NULL;
 }
 
-//0 - unsigned char
-//1 - double
+//Função que aloca uma matriz de unsigned chars ou de doubles.
+//Entrada: tipo da matriz alocada (0 - unsigned char; 1 - double); altura e largura da
+//matriz.
+//Saída: ponteiro duplo para void que aponta para a matriz alocada.
 void **aloca_matrix(int tipo, int Height, int Width) {
+    //Aloca a matriz.
     void **matrix = (void **) malloc(Height*sizeof(void *));
     if(matrix == NULL) {
         printf("Erro na alocação de matrix!\n");
         return NULL;
     }
     
+    //Aloca os vetores da matriz, a depender do tipo escolhido.
     for(int i = 0; i < Height; i++) {
         if(tipo == 0) {
             matrix[i] = (unsigned char *) malloc(Width*sizeof(unsigned char));
@@ -35,21 +47,14 @@ void **aloca_matrix(int tipo, int Height, int Width) {
 }
 
 
-/*
-void multiplicacao_matrix(double matrix1[8][8], double matrix2[8][8], double resultado[8][8]) {
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            resultado[i][j] = 0;
-            for(int k = 0; k < 8; k++)
-                resultado[i][j] += matrix1[i][k]*matrix2[k][j];
-        }
-    }
-}
-*/
-
-
+//Função que multiplica uma matriz A alocada na heap por uma matriz B
+//na memória stack (Multiplicação = A . B).
+//Entrada: matriz 8x8 A armazenada na heap; matriz 8x8 B armazenada na stack.
+//Saída: matrix 8x8 armazenada na heap que é o resultado da multiplicação. 
 double **multiplicacao_matrix_esq(double **matrix1,  double matrix2[8][8]) {
+    //Aloca a matriz de resultado.
     double **resultado = (double **) aloca_matrix(1, 8, 8);
+    //Realiza a multiplicação.
     for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
             resultado[i][j] = 0;
@@ -61,9 +66,14 @@ double **multiplicacao_matrix_esq(double **matrix1,  double matrix2[8][8]) {
     return resultado;
 }
 
-
+//Função que multiplica uma matriz A alocada na stack por uma matriz B
+//na memória heap (Multiplicação = A . B).
+//Entrada: matriz 8x8 A armazenada na stack; matriz 8x8 B armazenada na heap.
+//Saída: matrix 8x8 armazenada na heap que é o resultado da multiplicação. 
 double **multiplicacao_matrix_dir(double matrix1[8][8], double **matrix2) {
+    //Aloca a matriz de resultado.
     double **resultado = (double **) aloca_matrix(1, 8, 8);
+    //Realiza a multiplicação.
     for(int i = 0; i < 8; i++) {
         for(int j = 0; j < 8; j++) {
             resultado[i][j] = 0;
@@ -74,31 +84,3 @@ double **multiplicacao_matrix_dir(double matrix1[8][8], double **matrix2) {
     return resultado;
 }
 
-
-void get_bloco_matrix(double **matrix, double bloco[8][8], int bases[2]) {
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++)
-            bloco[i][j] = matrix[bases[0] + i][bases[1] + j];
-    }
-}
-
-void set_bloco_matrix(double **matrix, double bloco[8][8], int bases[2]) {
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++)
-            matrix[bases[0] + i][bases[1] + j] = bloco[i][j];
-    }
-}
-
-
-void printaMatrix(double **matrix, int Height, int Width) {
-    if(matrix == NULL)
-        return;
-
-
-    for(int i = 0; i < Height; i++) {
-        for(int j = 0; j < Width; j++)
-            printf("%lf ", matrix[i][j]);
-
-        printf("\n");
-    }
-}

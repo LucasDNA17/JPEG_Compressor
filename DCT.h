@@ -4,16 +4,20 @@
     #include "matrix.h"
     #include "BMP_ColorElements.h"
 
-
-    /*
-    void DCT(Imagem_ycbcr *imagem, int *indices_y, int *indices_c);
-    void DCT_inversa(Imagem_ycbcr *imagem,int *indices_y, int *indices_c);
-    void DCT_8x8(double bloco[8][8], double resultado[8][8]);
-    void DCT_inversa8x8(double bloco[8][8], double resultado[8][8]);
-    */
-
-    double **DCT8x8(double **matrix);
+    //Função que realiza a DCT nos blocos 8x8 de uma imagem.
+    //Entrada: ponteiro quádruplo para double em que a indexação mais exterior representa o canal de informação
+    //da imagem (0 - Y; 1 - Cb; 2 - Cr); a segunda mais exterior representa o bloco 8x8 (1º, 2º, etc.); e as últimas
+    //indexações representam o bloco 8x8 em si, no formato de matriz; quantidade de blocos nos canais de crominância
+    //e luminância.
+    //Saída: nenhuma.
     void DCT (double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c);
+
+    //Função que realiza a DCT inversa nos blocos 8x8 de uma imagem.
+    //Entrada: ponteiro quádruplo para double em que a indexação mais exterior representa o canal de informação
+    //da imagem (0 - Y; 1 - Cb; 2 - Cr); a segunda mais exterior representa o bloco 8x8 (1º, 2º, etc.); e as últimas
+    //indexações representam o bloco 8x8 em si, no formato de matriz; quantidade de blocos nos canais de crominância
+    //e luminância.
+    //Saída: nenhuma.
     void DCT_inversa(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c);
 
 #endif

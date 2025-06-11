@@ -4,14 +4,28 @@
 #include <stdlib.h>
 
 
-// Tabelas DC
+//Matriz de índices pré-calculada em que o elemento a_ij representa
+//a posição do coeficiente c_ij do bloco no vetor final, seguindo o padrão zig-zag.
+int matriz_indices_vetorizacao[8][8] = {
+    {0, 1, 5 ,6, 14, 15, 27, 28},
+    {2, 4, 7, 13, 16, 26, 29, 42},
+    {3, 8, 12, 17, 25, 30, 41, 43},
+    {9, 11, 18, 24, 31, 40, 44, 53},
+    {10, 19, 23, 32, 39, 45, 52, 54},
+    {20, 22, 33, 38, 46, 51, 55, 60},
+    {21, 34, 37, 47, 50, 56, 59, 61},
+    {35, 36, 48, 49, 57, 58, 62, 63}
+};
+
+
+//Tabelas DC
 const uint8_t huffman_dc_len[12] = { 2,3,3,3,3,3,4,5,6,7,8,9 };
 const uint16_t huffman_dc_code[12] = { 
     0x000,0x002,0x003,0x004,0x005,0x006,
     0x00e,0x01e,0x03e,0x07e,0x0fe,0x1fe 
 };
 
-// Tabelas AC
+//Tabelas AC
 const uint8_t huffman_ac_len[256] = {
      4, 2, 2, 3, 4, 5, 7, 8,
     10,16,16, 0, 0, 0, 0, 0,
@@ -84,71 +98,48 @@ const uint16_t huffman_ac_code[256] = {
 
 
 
-//Transforma um bloco 8x8 em vetor seguindo padrao zigue-zague
-//Parametros: bloco8x8 - matriz 8x8 de coeficientes DCT
-//Retorno: ponteiro para vetor de 64 elementos ordenados
+//Função que transforma um bloco 8x8 em vetor seguindo padrao zigue-zague.
+//Entrada: ponteiro duplo para double que representa o bloco 8x8 a ser vetorizado.
+//Saída: ponteiro para vetor de 64 elementos ordenados.
 int *vetorizacao_bloco8x8(double **bloco8x8) {
     if(bloco8x8 == NULL) return NULL;
-
-    //Matriz de índices pré-calculada em que o elemento a_ij representa
-    //a posição do coeficiente c_ij do bloco no vetor final.
-    int index_matrix[8][8] = {
-    {0, 1, 5 ,6, 14, 15, 27, 28},
-    {2, 4, 7, 13, 16, 26, 29, 42},
-    {3, 8, 12, 17, 25, 30, 41, 43},
-    {9, 11, 18, 24, 31, 40, 44, 53},
-    {10, 19, 23, 32, 39, 45, 52, 54},
-    {20, 22, 33, 38, 46, 51, 55, 60},
-    {21, 34, 37, 47, 50, 56, 59, 61},
-    {35, 36, 48, 49, 57, 58, 62, 63}
-    };
 
     //Cópia dos elementos do bloco 8x8 para o vetor, sendo a posição
     //dos coeficientes determinada pela matriz de índices.
     int *vetor = (int *) malloc(64*sizeof(int));
     for(int i = 0; i < 8; i++)
         for(int j = 0; j < 8; j++)
-            vetor[index_matrix[i][j]] = (int) bloco8x8[i][j];
+            vetor[matriz_indices_vetorizacao[i][j]] = (int) bloco8x8[i][j];
     
     //Desaloca o bloco 8x8 e retorna o vetor criado.
     desaloca_matrix((void **) bloco8x8, 8, 8);
     return vetor;    
 }
 
-//Reconstroi bloco 8x8 a partir de vetor ordenado zigue-zague
-//Parametros: vetor - vetor de 64 coeficientes ordenados
-//Retorno: ponteiro para matriz 8x8 reconstruida
+//Função que reconstrói bloco 8x8 a partir de vetor ordenado zigue-zague.
+//Entrada: vetor de 64 coeficientes ordenados.
+//Saída: ponteiro para matriz 8x8 reconstruida.
 double **matricizacao_bloco8x8(int *vetor) {
     if(vetor == NULL) return NULL;
-
-    //Matriz de índices pré-calculada em que o elemento a_ij representa
-    //a posição do coeficiente c_ij do bloco no vetor final.
-    int index_matrix[8][8] = {
-    {0, 1, 5 ,6, 14, 15, 27, 28},
-    {2, 4, 7, 13, 16, 26, 29, 42},
-    {3, 8, 12, 17, 25, 30, 41, 43},
-    {9, 11, 18, 24, 31, 40, 44, 53},
-    {10, 19, 23, 32, 39, 45, 52, 54},
-    {20, 22, 33, 38, 46, 51, 55, 60},
-    {21, 34, 37, 47, 50, 56, 59, 61},
-    {35, 36, 48, 49, 57, 58, 62, 63}
-    };
 
     //Cópia dos elementos do vetor para o bloco 8x8, sendo a posição
     //dos coeficientes determinada pela matriz de índices.
     double **bloco8x8 = (double **) aloca_matrix(1, 8, 8);
     for(int i = 0; i < 8; i++)
         for(int j = 0; j < 8; j++)
-            bloco8x8[i][j] = (double) vetor[index_matrix[i][j]];
+            bloco8x8[i][j] = (double) vetor[matriz_indices_vetorizacao[i][j]];
 
     //Desaloca o vetor de coeficientes e retorna o bloco 8x8 criado.
     free(vetor);
     return bloco8x8;    
 }
 
-//Vetoriza todos os blocos 8x8 da imagem
-//Parametros: blocos8x8 - matriz de blocos por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de vetores por canal
+//Função que vetoriza todos os blocos 8x8 de uma imagem.
+//Entrada: ponteiro quádruplo para double em que a indexação mais exterior representa o canal de informação
+//da imagem (0 - Y; 1 - Cb; 2 - Cr); a segunda mais exterior representa o bloco 8x8 (1º, 2º, etc.); e as últimas
+//indexações representam o bloco 8x8 em si, no formato de matriz; quantidade de blocos nos canais de crominância
+//e luminância; quantidade de blocos dos canais de luminância e crominância.
+//Saída: ponteiro para estrutura de vetores por canal de informação.
 int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos8x8 == NULL) return NULL;
 
@@ -178,9 +169,10 @@ int ***vetorizacao(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
     return vetores;
 }
 
-//Reconstroi todos os blocos 8x8 a partir dos vetores
-//Parametros: vetor - estrutura de vetores por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de blocos 8x8 por canal
+//Função que reconstrói todos os blocos 8x8 a partir dos vetores correspondentes.
+//Entrada: conjunto de vetores por canal de inforamção; quantidade de blocos dos canais
+//de luminância e crominância.
+//Saída: ponteiro para estrutura de blocos 8x8 por canal (igual à entrada da função de vetorização).
 double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetor == NULL) return NULL;
 
@@ -204,7 +196,7 @@ double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
         blocos8x8[2][i] = matricizacao_bloco8x8(vetor[2][i]);
     }
 
-    //Desaloca as listas de vetores dos trẽs canais de infromação.
+    //Desaloca as listas de vetores dos trẽs canais de informação.
     free(vetor[0]); free(vetor[1]); free(vetor[2]);
     free(vetor);
 
@@ -213,8 +205,8 @@ double ****matricizacao(int ***vetor, int qtd_blocos_y, int qtd_blocos_c) {
 
 
 //Codifica um vetor de coeficientes usando Run-Length Encoding
-//Parametros: vetor - vetor de 64 coeficientes DCT
-//Retorno: ponteiro para bloco RLE codificado
+//Entrada: vetor - vetor de 64 coeficientes DCT
+//Saída: ponteiro para bloco RLE codificado
 Bloco_RLE *codificar_bloco_rle(int *vetor) {
     if(vetor == NULL) return NULL;
     
@@ -257,8 +249,8 @@ Bloco_RLE *codificar_bloco_rle(int *vetor) {
 }
 
 //Decodifica um bloco RLE de volta para vetor de coeficientes
-//Parametros: bloco_rle - bloco codificado em RLE
-//Retorno: ponteiro para vetor de 64 coeficientes decodificados
+//Entrada: bloco_rle - bloco codificado em RLE
+//Saída: ponteiro para vetor de 64 coeficientes decodificados
 int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
     if(bloco_rle == NULL) return NULL;
     
@@ -293,8 +285,8 @@ int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
 }
 
 //Aplica codificacao RLE a todos os vetores da imagem
-//Parametros: vetores - estrutura de vetores por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de blocos RLE por canal
+//Entrada: vetores - estrutura de vetores por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: ponteiro para estrutura de blocos RLE por canal
 Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c) {
     if(vetores == NULL) return NULL;
     
@@ -318,8 +310,8 @@ Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c) {
 }
 
 //Decodifica todos os blocos RLE de volta para vetores
-//Parametros: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de vetores decodificados por canal
+//Entrada: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: ponteiro para estrutura de vetores decodificados por canal
 int ***decodificar_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return NULL;
     
@@ -343,8 +335,8 @@ int ***decodificar_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos
 }
 
 //Libera memoria alocada para um bloco RLE
-//Parametros: bloco_rle - ponteiro para bloco RLE
-//Retorno: void
+//Entrada: bloco_rle - ponteiro para bloco RLE
+//Saída: nenhuma
 void liberar_bloco_rle(Bloco_RLE *bloco_rle) {
     if(bloco_rle != NULL) {
         if(bloco_rle->pares_ac != NULL) {
@@ -355,8 +347,8 @@ void liberar_bloco_rle(Bloco_RLE *bloco_rle) {
 }
 
 //Libera memoria de todos os blocos RLE da imagem
-//Parametros: blocos_rle - estrutura de blocos RLE, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: void
+//Entrada: blocos_rle - estrutura de blocos RLE, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: nenhuma
 void liberar_blocos_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return;
     
@@ -379,8 +371,8 @@ void liberar_blocos_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_bloco
 
 
 //Obtem codigo de amplitude JPEG para um valor e categoria
-//Parametros: valor - valor a ser codificado, categoria - categoria do valor
-//Retorno: codigo de amplitude correspondente
+//Entrada: valor - valor a ser codificado, categoria - categoria do valor
+//Saída: codigo de amplitude correspondente
 int obter_codigo_amplitude(int valor, int categoria) {
     if(categoria == 0) return 0;
     
@@ -393,8 +385,8 @@ int obter_codigo_amplitude(int valor, int categoria) {
 }
 
 //Codifica um bloco RLE usando representacao Huffman
-//Parametros: bloco_rle - bloco RLE a ser codificado, dc_anterior - valor DC do bloco anterior
-//Retorno: ponteiro para bloco Huffman codificado
+//Entrada: bloco_rle - bloco RLE a ser codificado, dc_anterior - valor DC do bloco anterior
+//Saída: ponteiro para bloco Huffman codificado
 Bloco_Huffman *codificar_bloco_huffman(Bloco_RLE *bloco_rle, int dc_anterior) {
     if(bloco_rle == NULL) return NULL;
     
@@ -448,8 +440,8 @@ Bloco_RLE *decodificar_bloco_huffman(Bloco_Huffman *bloco_huff, int *dc_anterior
 }
 
 //Aplica codificacao Huffman a todos os blocos RLE da imagem
-//Parametros: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de blocos Huffman por canal
+//Entrada: blocos_rle - estrutura de blocos RLE por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: ponteiro para estrutura de blocos Huffman por canal
 Bloco_Huffman ***codificar_huffman(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_rle == NULL) return NULL;
     
@@ -479,8 +471,8 @@ Bloco_Huffman ***codificar_huffman(Bloco_RLE ***blocos_rle, int qtd_blocos_y, in
 }
 
 //Decodifica todos os blocos Huffman de volta para blocos RLE
-//Parametros: blocos_huff - estrutura de blocos Huffman por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: ponteiro para estrutura de blocos RLE decodificados por canal
+//Entrada: blocos_huff - estrutura de blocos Huffman por canal, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: ponteiro para estrutura de blocos RLE decodificados por canal
 Bloco_RLE ***decodificar_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_huff == NULL) return NULL;
     
@@ -507,8 +499,8 @@ Bloco_RLE ***decodificar_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y,
 }
 
 //Libera memoria alocada para um bloco Huffman
-//Parametros: bloco_huff - ponteiro para bloco Huffman
-//Retorno: void
+//Entrada: bloco_huff - ponteiro para bloco Huffman
+//Saída: Saída
 void liberar_bloco_huffman(Bloco_Huffman *bloco_huff) {
     if(bloco_huff != NULL) {
         if(bloco_huff->dados_originais != NULL) {
@@ -519,8 +511,8 @@ void liberar_bloco_huffman(Bloco_Huffman *bloco_huff) {
 }
 
 //Libera memoria de todos os blocos Huffman da imagem
-//Parametros: blocos_huff - estrutura de blocos Huffman, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
-//Retorno: void
+//Entrada: blocos_huff - estrutura de blocos Huffman, qtd_blocos_y - quantidade de blocos Y, qtd_blocos_c - quantidade de blocos Cb/Cr
+//Saída: nenhuma
 void liberar_blocos_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y, int qtd_blocos_c) {
     if(blocos_huff == NULL) return;
     
