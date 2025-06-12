@@ -320,6 +320,7 @@ Bloco_Comprimido *comprimir_bloco_huffman(Bloco_Huffman *bloco_huff) {
     bloco_comp->dados_bits = (unsigned char *) malloc(bloco_comp->tamanho_bits);
     memcpy(bloco_comp->dados_bits, buffer->dados, bloco_comp->tamanho_bits);
     
+    liberar_bloco_huffman(bloco_huff);
     liberar_buffer_bits(buffer);
     return bloco_comp;
 }
@@ -422,6 +423,8 @@ int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_h
         total_bytes += sizeof(int) * 3 + comp->tamanho_bits;
         liberar_bloco_comprimido(comp);
     }
+
+    free(blocos_huffman[0]);
     
     // Comprimir e salvar blocos Cb e Cr
     for(int canal = 1; canal <= 2; canal++) {
@@ -436,8 +439,12 @@ int salvar_imagem_comprimida(const char *nome_arquivo, Bloco_Huffman ***blocos_h
             total_bytes += sizeof(int) * 3 + comp->tamanho_bits;
             liberar_bloco_comprimido(comp);
         }
+
+        free(blocos_huffman[canal]);
     }
     
+    free(blocos_huffman);
+
     // Atualizar cabeçalho com tamanho real
     fseek(arquivo, 0, SEEK_SET);
     cabecalho.tamanho_dados = total_bytes;

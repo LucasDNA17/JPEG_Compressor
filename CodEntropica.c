@@ -281,6 +281,7 @@ int *decodificar_bloco_rle(Bloco_RLE *bloco_rle) {
         }
     }
     
+    liberar_bloco_rle(bloco_rle);
     return vetor;
 }
 
@@ -296,6 +297,7 @@ Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c) {
     blocos_rle[0] = (Bloco_RLE **) malloc(qtd_blocos_y*sizeof(Bloco_RLE *));
     for(int i = 0; i < qtd_blocos_y; i++) {
         blocos_rle[0][i] = codificar_bloco_rle(vetores[0][i]);
+        free(vetores[0][i]);
     }
     
     // Canais Cb e Cr
@@ -304,8 +306,12 @@ Bloco_RLE ***codificar_rle(int ***vetores, int qtd_blocos_y, int qtd_blocos_c) {
     for(int i = 0; i < qtd_blocos_c; i++) {
         blocos_rle[1][i] = codificar_bloco_rle(vetores[1][i]);
         blocos_rle[2][i] = codificar_bloco_rle(vetores[2][i]);
+        free(vetores[1][i]);
+        free(vetores[2][i]);
     }
     
+    free(vetores[0]); free(vetores[1]); free(vetores[2]);
+    free(vetores);
     return blocos_rle;
 }
 
@@ -331,6 +337,8 @@ int ***decodificar_rle(Bloco_RLE ***blocos_rle, int qtd_blocos_y, int qtd_blocos
         vetores[2][i] = decodificar_bloco_rle(blocos_rle[2][i]);
     }
     
+    free(blocos_rle[0]); free(blocos_rle[1]); free(blocos_rle[2]);
+    free(blocos_rle);
     return vetores;
 }
 
@@ -436,6 +444,7 @@ Bloco_RLE *decodificar_bloco_huffman(Bloco_Huffman *bloco_huff, int *dc_anterior
         bloco_rle->num_pares = 0;
     }
     
+    liberar_bloco_huffman(bloco_huff);
     return bloco_rle;
 }
 
@@ -453,6 +462,7 @@ Bloco_Huffman ***codificar_huffman(Bloco_RLE ***blocos_rle, int qtd_blocos_y, in
     for(int i = 0; i < qtd_blocos_y; i++) {
         blocos_huff[0][i] = codificar_bloco_huffman(blocos_rle[0][i], dc_anterior_y);
         dc_anterior_y = blocos_rle[0][i]->dc;
+        liberar_bloco_rle(blocos_rle[0][i]);
     }
     
     // Canais Cb e Cr
@@ -465,8 +475,12 @@ Bloco_Huffman ***codificar_huffman(Bloco_RLE ***blocos_rle, int qtd_blocos_y, in
         blocos_huff[2][i] = codificar_bloco_huffman(blocos_rle[2][i], dc_anterior_cr);
         dc_anterior_cb = blocos_rle[1][i]->dc;
         dc_anterior_cr = blocos_rle[2][i]->dc;
+        liberar_bloco_rle(blocos_rle[1][i]); 
+        liberar_bloco_rle(blocos_rle[2][i]); 
     }
     
+    free(blocos_rle[0]); free(blocos_rle[1]); free(blocos_rle[2]);
+    free(blocos_rle); 
     return blocos_huff;
 }
 
@@ -495,6 +509,8 @@ Bloco_RLE ***decodificar_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y,
         blocos_rle[2][i] = decodificar_bloco_huffman(blocos_huff[2][i], &dc_anterior_cr);
     }
     
+    free(blocos_huff[0]); free(blocos_huff[1]); free(blocos_huff[2]);
+    free(blocos_huff);
     return blocos_rle;
 }
 
