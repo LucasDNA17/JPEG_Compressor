@@ -3,6 +3,7 @@
 ## Descrição geral
 O presente repositório contém uma implementação do *pipeline* de compressão do padrão JPEG capaz de comprimir imagens BMP. 
 O *pipeline* implementado é representado na figura a seguir:
+
 ![compression_pipeline](assets/compression_pipeline.png)
 
 Informações detalhadas sobre cada uma destas etapas podem ser encontradas na documentação do código fonte ou, para uma discussão teórica mais organizada, consultadas no artigo [JPEG](https://en.wikipedia.org/wiki/JPEG). O respositório contém também um descompressor para o compressor implementado, que consiste essencialmente na realização das operações inversas das operações do *pipeline*.
