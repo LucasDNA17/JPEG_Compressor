@@ -8,6 +8,7 @@ O *pipeline* implementado é representado na figura a seguir:
 Informações detalhadas sobre cada uma destas etapas podem ser encontradas na documentação do código fonte ou, para uma discussão teórica mais organizada, consultadas no artigo [JPEG](https://en.wikipedia.org/wiki/JPEG). O respositório contém também um descompressor para o compressor implementado, que consiste essencialmente na realização das operações inversas das operações do *pipeline*.
 
 ## Organização
+```text
 JPEG_Compressor/
 │
 ├── assets      # Imagens de exemplo utilizadas no arquivo readme.md
@@ -47,7 +48,7 @@ JPEG_Compressor/
     │ 
     ├── main.c  # Função principal
     ├── makefile # Código de compilação
-
+```
 
 ## Utilização
 * Copie o repositório para sua máquina: 
