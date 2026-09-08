@@ -547,5 +547,3 @@ void liberar_blocos_huffman(Bloco_Huffman ***blocos_huff, int qtd_blocos_y, int 
     free(blocos_huff[2]);
     free(blocos_huff);
 }
-
-

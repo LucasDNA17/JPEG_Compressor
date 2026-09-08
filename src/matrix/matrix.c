@@ -83,4 +83,3 @@ double **multiplicacao_matrix_dir(double matrix1[8][8], double **matrix2) {
     }
     return resultado;
 }
-

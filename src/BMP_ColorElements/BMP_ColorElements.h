@@ -3,8 +3,8 @@
 
     #include <stdio.h>
     #include <stdlib.h>
-    #include "BMP_header.h"
-    #include "matrix.h"
+    #include "../BMP_header/BMP_header.h"
+    #include "../matrix/matrix.h"
     #include <math.h>
 
     //Struct que armazena uma imagem BMP no formato RGB. Composta por três matrizes (R, G, B) 

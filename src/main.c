@@ -2,10 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include "jpeg.h"
-#include "Compressao.h"
-#include "BMP_header.h"
-#include "BMP_ColorElements.h"
+#include "jpeg/jpeg.h"
+#include "Compressao/Compressao.h"
+#include "BMP_header/BMP_header.h"
+#include "BMP_ColorElements/BMP_ColorElements.h"
 
 void estatisticas_detalhadas(const char *arquivo_original, const char *arquivo_comprimido) {
     FILE *orig = fopen(arquivo_original, "rb");

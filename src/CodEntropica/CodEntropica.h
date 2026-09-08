@@ -1,7 +1,7 @@
 #ifndef COD_ENTROPICA_H
     #define COD_ENTROPICA_H
 
-    #include "matrix.h"
+    #include "../matrix/matrix.h"
     #include <stdint.h>
 
     // Estrutura para pares RLE

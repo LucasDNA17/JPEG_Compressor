@@ -1,7 +1,7 @@
 #ifndef COMPRESSAO_H
 #define COMPRESSAO_H
 
-#include "CodEntropica.h"
+#include "../CodEntropica/CodEntropica.h"
 #include <stdio.h>
 
 // Estrutura para buffer de bits

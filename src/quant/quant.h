@@ -1,7 +1,7 @@
 #ifndef QUANT_H
     #define QUANT_H
 
-    #include "matrix.h"
+    #include "../matrix/matrix.h"
 
     //Fator que determina a qualidade (e compressão) da imagem resultante.
     //Derivada por meio de testes empíricos: valores maiores ou iguais a este

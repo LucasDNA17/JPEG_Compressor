@@ -1,5 +1,5 @@
 #include "DCT.h"
-#include "BMP_ColorElements.h"
+#include "../BMP_ColorElements/BMP_ColorElements.h"
 
 
 //Matriz pré-calculada da DCT aplicada a um bloco 8x8.
@@ -114,18 +114,4 @@ void DCT_inversa(double ****blocos8x8, int qtd_blocos_y, int qtd_blocos_c) {
         desaloca_matrix((void **) aux_cb, 8, 8);
         desaloca_matrix((void **) aux_cr, 8, 8);
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

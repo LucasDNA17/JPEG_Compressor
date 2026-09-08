@@ -1,8 +1,8 @@
 #include "Compressao.h"
-#include "BMP_header.h"
-#include "BMP_ColorElements.h"
-#include "DCT.h"
-#include "quant.h"
+#include "../BMP_header/BMP_header.h"
+#include "../BMP_ColorElements/BMP_ColorElements.h"
+#include "../DCT/DCT.h"
+#include "../quant/quant.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

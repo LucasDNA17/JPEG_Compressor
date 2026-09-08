@@ -1,10 +1,10 @@
 #include "jpeg.h"
-#include "BMP_header.h"
-#include "BMP_ColorElements.h"
-#include "DCT.h"
-#include "quant.h"
-#include "CodEntropica.h"
-#include "Compressao.h"
+#include "../BMP_header/BMP_header.h"
+#include "../BMP_ColorElements/BMP_ColorElements.h"
+#include "../DCT/DCT.h"
+#include "../quant/quant.h"
+#include "../CodEntropica/CodEntropica.h"
+#include "../Compressao/Compressao.h"
 #include <stdio.h>
 #include <stdlib.h>
 

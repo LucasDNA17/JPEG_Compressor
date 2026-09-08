@@ -556,5 +556,3 @@ Imagem_ycbcr *blocos_to_imagem(double ****blocos, int Height, int Width, int Hei
     
     return imagem;
 }
-
-

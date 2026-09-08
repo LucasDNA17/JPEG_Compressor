@@ -1,8 +1,8 @@
 #ifndef DCT_H
     #define DCT_H
 
-    #include "matrix.h"
-    #include "BMP_ColorElements.h"
+    #include "../matrix/matrix.h"
+    #include "../BMP_ColorElements/BMP_ColorElements.h"
 
     //Função que realiza a DCT nos blocos 8x8 de uma imagem.
     //Entrada: ponteiro quádruplo para double em que a indexação mais exterior representa o canal de informação
